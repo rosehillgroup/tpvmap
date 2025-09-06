@@ -7,6 +7,8 @@ import netlify from '@astrojs/netlify';
 export default defineConfig({
   integrations: [react()],
   output: 'server',
-  adapter: netlify(),
+  adapter: netlify({
+    dist: new URL('./dist/', import.meta.url)
+  }),
   server: { host: true }
 });
