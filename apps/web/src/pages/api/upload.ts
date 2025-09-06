@@ -37,7 +37,6 @@ async function getImageInfo(buffer: Buffer): Promise<{ width: number; height: nu
 
 export async function POST(context: any) {
   try {
-    // Basic test first
     console.log('Upload API called');
     
     const formData = await context.request.formData();
@@ -70,43 +69,35 @@ export async function POST(context: any) {
     
     console.log('Generated job ID:', jobId);
     
-    // Test Netlify Blobs store
-    try {
-      const store = getStore({ name: 'tpv-matcher' });
-      await store.set(`uploads/${jobId}.${filename.split('.').pop()}`, new Uint8Array(buffer));
-      console.log('File stored successfully');
-    } catch (blobError) {
-      console.error('Blob storage error:', blobError);
-      return Response.json({ error: 'Storage failed' }, { status: 500 });
-    }
+    // Initialize Netlify Blobs store
+    const store = getStore({ name: 'tpv-matcher' });
+    
+    // Store the uploaded file
+    await store.set(`uploads/${jobId}.${filename.split('.').pop()}`, new Uint8Array(buffer));
+    console.log('File stored successfully');
     
     const pages: PageInfo[] = [];
     
     if (fileType.startsWith('image/')) {
-      try {
-        // Handle image files
-        const info = await getImageInfo(buffer);
-        console.log('Image info:', info);
-        
-        const thumbnail = await generateThumbnail(buffer);
-        console.log('Thumbnail generated, size:', thumbnail.length);
-        
-        // Store thumbnail
-        const store = getStore({ name: 'tpv-matcher' });
-        await store.set(`thumbnails/${jobId}-page-1.png`, new Uint8Array(thumbnail));
-        
-        pages.push({
-          id: 'page-1',
-          width: info.width,
-          height: info.height,
-          previewUrl: `/api/thumbnail/${jobId}-page-1.png`
-        });
-      } catch (imageError) {
-        console.error('Image processing error:', imageError);
-        return Response.json({ error: 'Image processing failed' }, { status: 500 });
-      }
+      // Handle image files
+      const info = await getImageInfo(buffer);
+      console.log('Image info:', info);
+      
+      const thumbnail = await generateThumbnail(buffer);
+      console.log('Thumbnail generated, size:', thumbnail.length);
+      
+      // Store thumbnail
+      await store.set(`thumbnails/${jobId}-page-1.png`, new Uint8Array(thumbnail));
+      
+      pages.push({
+        id: 'page-1',
+        width: info.width,
+        height: info.height,
+        previewUrl: `/api/thumbnail/${jobId}-page-1.png`
+      });
     } else if (fileType === 'application/pdf') {
       // For PDF files, create placeholder page info
+      // Real PDF processing would be implemented here
       pages.push({
         id: 'page-1',
         width: 595,
@@ -124,14 +115,8 @@ export async function POST(context: any) {
       pages
     };
     
-    try {
-      const store = getStore({ name: 'tpv-matcher' });
-      await store.set(`jobs/${jobId}.json`, JSON.stringify(jobData));
-      console.log('Job metadata stored');
-    } catch (metaError) {
-      console.error('Metadata storage error:', metaError);
-      return Response.json({ error: 'Metadata storage failed' }, { status: 500 });
-    }
+    await store.set(`jobs/${jobId}.json`, JSON.stringify(jobData));
+    console.log('Job metadata stored');
     
     return Response.json({
       jobId,
