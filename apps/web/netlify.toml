@@ -37,6 +37,7 @@ for = "/api/thumbnail/*"
 Cache-Control = "public, max-age=86400" # 24 hours
 
 # Server-side rendering - no fallback needed
+# Updated configuration
 
 # Environment variables
 [build.environment]
