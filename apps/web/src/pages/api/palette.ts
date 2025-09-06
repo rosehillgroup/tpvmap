@@ -66,13 +66,14 @@ export async function GET(context: any) {
         // Dynamic import to avoid PDF.js import issues at module level
         const { PaletteExtractor } = await import('../../lib/extraction/extractor');
         
-        // Initialize palette extractor
+        // Initialize palette extractor with more sensitive settings
         const extractor = new PaletteExtractor({
-          maxColours: 12,
-          minAreaPct: 1.0,
+          maxColours: 15,
+          minAreaPct: 0.5,  // Capture colors that are at least 0.5% of image
           rasterOptions: {
             resampleSize: 400,
-            iterations: 15
+            iterations: 15,
+            minPercentage: 0.5  // Also reduce at raster level
           }
         });
         
