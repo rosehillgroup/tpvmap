@@ -8,7 +8,7 @@ export default defineConfig({
   integrations: [react()],
   output: 'server',
   adapter: netlify({
-    mode: 'directory'
+    mode: 'functions'
   }),
   server: { host: true }
 });
