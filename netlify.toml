@@ -36,12 +36,7 @@ for = "/api/thumbnail/*"
 [headers.values]
 Cache-Control = "public, max-age=86400" # 24 hours
 
-# Single page app fallback if needed
-[[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200
-conditions = {Role = ["user"]}
+# Server-side rendering - no fallback needed
 
 # Environment variables
 [build.environment]

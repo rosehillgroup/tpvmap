@@ -9,7 +9,7 @@ export default defineConfig({
   output: 'server',
   adapter: netlify({
     imageCDN: false,
-    mode: 'directory' // generates Netlify Functions per route
+    mode: 'functions' // single function to handle all routes
   }),
   server: { host: true }
 });
