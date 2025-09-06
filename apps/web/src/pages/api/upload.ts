@@ -35,10 +35,7 @@ async function getImageInfo(buffer: Buffer): Promise<{ width: number; height: nu
   };
 }
 
-export async function onRequest(context: any) {
-  if (context.request.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
-  }
+export async function POST(context: any) {
 
   try {
     const formData = await context.request.formData();

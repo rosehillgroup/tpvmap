@@ -29,10 +29,7 @@ interface PaletteEntry {
   pageIds?: string[];
 }
 
-export async function onRequest(context: any) {
-  if (context.request.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
-  }
+export async function POST(context: any) {
 
   try {
     const body: SolveRequest = await context.request.json();

@@ -40,10 +40,7 @@ function formatRecipe(weights: Record<string, number>, parts?: Record<string, nu
   }
 }
 
-export async function onRequest(context: any) {
-  if (context.request.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 });
-  }
+export async function GET(context: any) {
 
   try {
     const url = new URL(context.request.url);
