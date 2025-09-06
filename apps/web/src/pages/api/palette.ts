@@ -1,5 +1,4 @@
 import { getStore } from '@netlify/blobs';
-import { PaletteExtractor } from '../../lib/extraction/extractor';
 
 export const prerender = false;
 
@@ -63,17 +62,20 @@ export async function GET(context: any) {
 
       console.info(`Extracting palette for ${jobData.fileName} (${uploadedFile.byteLength} bytes)`);
       
-      // Initialize palette extractor
-      const extractor = new PaletteExtractor({
-        maxColours: 12,
-        minAreaPct: 1.0,
-        rasterOptions: {
-          resampleSize: 400,
-          iterations: 15
-        }
-      });
-      
       try {
+        // Dynamic import to avoid PDF.js import issues at module level
+        const { PaletteExtractor } = await import('../../lib/extraction/extractor');
+        
+        // Initialize palette extractor
+        const extractor = new PaletteExtractor({
+          maxColours: 12,
+          minAreaPct: 1.0,
+          rasterOptions: {
+            resampleSize: 400,
+            iterations: 15
+          }
+        });
+        
         const result = await extractor.extract(uploadedFile, jobData.fileName);
         console.info(`Extracted ${result.palette.length} colors in ${result.metadata.extractionTime}ms`);
         

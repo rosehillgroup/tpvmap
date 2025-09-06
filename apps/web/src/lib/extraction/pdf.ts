@@ -1,11 +1,14 @@
-import { getDocument, version } from 'pdfjs-dist';
 import type { RGB } from '../colour/types';
 
-// PDF.js worker configuration for Netlify Functions
-if (typeof window === 'undefined') {
-  const pdfjs = await import('pdfjs-dist/build/pdf.worker.min.mjs');
-  // @ts-ignore
-  globalThis.pdfjsWorker = pdfjs;
+// Configure PDF.js for server-side rendering
+async function configurePDFJS() {
+  // Use legacy build for Node.js environment
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  
+  // Disable worker in server environment
+  pdfjs.GlobalWorkerOptions.workerSrc = null;
+  
+  return pdfjs;
 }
 
 export interface PDFColour {
@@ -43,7 +46,9 @@ export class PDFExtractor {
 
   async extract(pdfBuffer: ArrayBuffer): Promise<PDFExtractionResult> {
     try {
-      const pdfDoc = await getDocument({
+      const pdfjs = await configurePDFJS();
+      
+      const pdfDoc = await pdfjs.getDocument({
         data: pdfBuffer,
         useSystemFonts: false,
         isEvalSupported: false,
@@ -89,7 +94,7 @@ export class PDFExtractor {
         metadata: {
           pageCount: pdfDoc.numPages,
           totalObjects,
-          version: version
+          version: pdfjs.version || 'unknown'
         }
       };
     } catch (error) {
