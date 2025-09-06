@@ -6,9 +6,7 @@ import netlify from '@astrojs/netlify';
 // https://astro.build/config
 export default defineConfig({
   integrations: [react()],
-  output: 'hybrid',
-  adapter: netlify({
-    imageCDN: false
-  }),
+  output: 'server',
+  adapter: netlify(),
   server: { host: true }
 });
