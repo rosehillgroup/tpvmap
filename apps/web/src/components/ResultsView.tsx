@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PaletteTable from './PaletteTable';
 import ConstraintsPanel from './ConstraintsPanel';
 import RecipesTable from './RecipesTable';
-import tpvColours from '../../../data/rosehill_tpv_21_colours.json';
+import tpvColours from '../data/rosehill_tpv_21_colours.json';
 import type { TPVColour } from '../lib/colour/blend';
 
 interface Props {

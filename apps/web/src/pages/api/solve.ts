@@ -1,6 +1,6 @@
 import { getStore } from '@netlify/blobs';
 import { BlendSolver } from '../../lib/solver/solver';
-import tpvColours from '../../../data/rosehill_tpv_21_colours.json';
+import tpvColours from '../../data/rosehill_tpv_21_colours.json';
 import type { TPVColour } from '../../lib/colour/blend';
 
 export const prerender = false;
