@@ -16,11 +16,18 @@ interface UploadResponse {
   }>;
 }
 
+interface ProgressState {
+  stage: 'uploading' | 'processing' | 'extracting' | 'caching' | 'complete' | 'error';
+  progress: number;
+  message: string;
+}
+
 export default function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [progress, setProgress] = useState<ProgressState | null>(null);
 
   const handleDrag = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -65,11 +72,33 @@ export default function UploadForm() {
     setError(null);
   };
 
+  const simulateProgress = async (jobId: string) => {
+    // Simulate progressive loading stages
+    const stages = [
+      { stage: 'uploading' as const, progress: 20, message: 'File uploaded successfully' },
+      { stage: 'processing' as const, progress: 40, message: 'Processing file structure...' },
+      { stage: 'extracting' as const, progress: 70, message: 'Extracting color palette...' },
+      { stage: 'caching' as const, progress: 90, message: 'Optimizing results...' },
+      { stage: 'complete' as const, progress: 100, message: 'Ready to view results!' }
+    ];
+
+    for (const stageInfo of stages) {
+      setProgress(stageInfo);
+      await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200));
+    }
+
+    // Small delay before navigation
+    setTimeout(() => {
+      window.location.href = `/results?jobId=${jobId}`;
+    }, 500);
+  };
+
   const handleSubmit = async () => {
     if (!file) return;
     
     setLoading(true);
     setError(null);
+    setProgress({ stage: 'uploading', progress: 5, message: 'Uploading file...' });
     
     const formData = new FormData();
     formData.append('file', file);
@@ -86,10 +115,11 @@ export default function UploadForm() {
       
       const data: UploadResponse = await response.json();
       
-      // Navigate to the results page
-      window.location.href = `/results?jobId=${data.jobId}`;
+      // Start progressive loading simulation
+      await simulateProgress(data.jobId);
     } catch (err) {
       setError('Failed to upload file. Please try again.');
+      setProgress({ stage: 'error', progress: 0, message: 'Upload failed' });
       console.error('Upload error:', err);
     } finally {
       setLoading(false);
@@ -137,6 +167,21 @@ export default function UploadForm() {
       
       {error && <p className="error">{error}</p>}
       
+      {progress && (
+        <div className="progress-container">
+          <div className="progress-bar">
+            <div 
+              className="progress-fill"
+              style={{ width: `${progress.progress}%` }}
+            />
+          </div>
+          <div className="progress-info">
+            <span className="progress-stage">{progress.stage}</span>
+            <span className="progress-message">{progress.message}</span>
+          </div>
+        </div>
+      )}
+      
       <button 
         className="btn btn-primary upload-btn"
         onClick={handleSubmit}
@@ -145,7 +190,7 @@ export default function UploadForm() {
         {loading ? (
           <>
             <span className="loading"></span>
-            <span>Uploading...</span>
+            <span>{progress?.message || 'Processing...'}</span>
           </>
         ) : (
           'Extract Palette'
@@ -243,5 +288,53 @@ export default function UploadForm() {
 
   .upload-btn .loading {
     margin-right: 0.5rem;
+  }
+
+  .progress-container {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border);
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--color-background);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+    transition: width 0.5s ease-in-out;
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+  }
+
+  .progress-stage {
+    text-transform: capitalize;
+    font-weight: 500;
+    color: var(--color-primary);
+  }
+
+  .progress-message {
+    color: var(--color-text-light);
+  }
+
+  @media (max-width: 600px) {
+    .progress-info {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
   }
 `}</style>
