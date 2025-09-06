@@ -11,7 +11,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "postinstall": "npm rebuild sharp --platform=linux --arch=x64 || true"
   },
   "dependencies": {
     "@astrojs/netlify": "^6.5.9",
@@ -25,7 +26,7 @@
     "pdfjs-dist": "^5.4.149",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "sharp": "^0.33.4",
+    "sharp": "0.33.5",
     "shiki": "^3.12.2"
   },
   "devDependencies": {

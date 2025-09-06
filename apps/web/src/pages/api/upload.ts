@@ -1,6 +1,5 @@
 import { getStore } from '@netlify/blobs';
 import { createHash } from 'crypto';
-import sharp from 'sharp';
 
 export const prerender = false;
 
@@ -20,6 +19,7 @@ interface JobData {
 }
 
 async function generateThumbnail(buffer: Buffer, maxWidth: number = 200, maxHeight: number = 200): Promise<Buffer> {
+  const { default: sharp } = await import('sharp');
   return sharp(buffer)
     .resize(maxWidth, maxHeight, { fit: 'inside' })
     .png()
@@ -27,6 +27,7 @@ async function generateThumbnail(buffer: Buffer, maxWidth: number = 200, maxHeig
 }
 
 async function getImageInfo(buffer: Buffer): Promise<{ width: number; height: number; format: string }> {
+  const { default: sharp } = await import('sharp');
   const metadata = await sharp(buffer).metadata();
   return {
     width: metadata.width || 0,

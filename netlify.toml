@@ -1,13 +1,13 @@
 [build]
-command = "npm install --include=optional && npm run build"
-publish = "dist"
+command = "cd apps/web && npm ci --include=optional && npm run build"
+publish = "apps/web/dist"
 
 [functions]
-directory = ".netlify/v1/functions"
+directory = "apps/web/.netlify/v1/functions"
 node_bundler = "esbuild"
 
 [functions."*"]
-included_files = ["data/**", "src/lib/**"]
+included_files = ["apps/web/data/**", "apps/web/src/lib/**"]
 
 [functions."api/*"]
 timeout = 26  # keep under provider limits
@@ -37,10 +37,10 @@ for = "/api/thumbnail/*"
 Cache-Control = "public, max-age=86400" # 24 hours
 
 # Server-side rendering - no fallback needed
-# Updated configuration
 
 # Environment variables
 [build.environment]
-NODE_VERSION = "20.16.0"
+NODE_VERSION = "20"
 NETLIFY_USE_PNPM = "false"
+NPM_FLAGS = "--include=optional"
 SHARP_IGNORE_GLOBAL_LIBVIPS = "true"
