@@ -14,12 +14,7 @@ export async function POST(context: any) {
     const { default: sharp } = await import("sharp");
     
     // Quick self-diagnostic
-    console.info('sharp versions', {
-      sharp: (sharp as any).version?.sharp,
-      libvips: (sharp as any).versions?.vips,
-      platform: process.platform,
-      arch: process.arch
-    });
+    console.info('sharp versions', (sharp as any).versions);
 
     // simple transform to prove sharp works
     const out = await sharp(buf).rotate().resize(512).toFormat("png").toBuffer();
