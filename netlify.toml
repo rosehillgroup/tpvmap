@@ -1,13 +1,13 @@
 [build]
 command = "npm ci --include=optional && npm run build"
-publish = "apps/web/dist"
+publish = "dist"
 
 [functions]
-directory = "apps/web/.netlify/v1/functions"
+directory = ".netlify/v1/functions"
 node_bundler = "esbuild"
 
 [functions."*"]
-included_files = ["apps/web/data/**", "apps/web/src/lib/**"]
+included_files = ["data/**", "src/lib/**"]
 
 [functions."api/*"]
 timeout = 26  # keep under provider limits
