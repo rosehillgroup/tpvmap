@@ -180,13 +180,26 @@ export class RasterExtractor {
     // Convert RGB pixels to array format for kmeans-js
     const data = pixels.map(pixel => [pixel.R, pixel.G, pixel.B]);
     
+    console.info(`K-means input: ${data.length} pixels, requesting ${k} clusters`);
+    
+    // Sample pixels if we have too many for performance
+    const sampleSize = Math.min(data.length, 5000);
+    const sampledData = data.length > sampleSize 
+      ? this.sampleArray(data, sampleSize) 
+      : data;
+      
+    console.info(`Using ${sampledData.length} sampled pixels`);
+    
     // Reduce k if we have fewer unique colors than requested clusters
-    const uniqueColors = new Set(data.map(rgb => `${rgb[0]},${rgb[1]},${rgb[2]}`));
-    const actualK = Math.min(k, uniqueColors.size, data.length);
+    const uniqueColors = new Set(sampledData.map(rgb => `${rgb[0]},${rgb[1]},${rgb[2]}`));
+    const actualK = Math.min(k, uniqueColors.size, Math.floor(sampledData.length / 10));
+    
+    console.info(`Unique colors: ${uniqueColors.size}, actualK: ${actualK}`);
     
     if (actualK <= 1) {
       // Handle edge case: single color or no colors
       const avgColor = this.calculateAverageColor(pixels);
+      console.info('Single color case, using average:', avgColor);
       return [{
         centroid: [avgColor.R, avgColor.G, avgColor.B],
         cluster: data
@@ -194,23 +207,112 @@ export class RasterExtractor {
     }
 
     try {
-      // Perform k-means clustering
-      const result = kmeans(data, actualK, {
+      // Perform k-means clustering with more robust parameters
+      console.info(`Running k-means with k=${actualK}, iterations=${this.options.iterations}`);
+      
+      const result = kmeans(sampledData, actualK, {
         maxIterations: this.options.iterations,
-        tolerance: 1.0
+        tolerance: 2.0,
+        initialization: 'random'
       });
       
-      return result || [];
-    } catch (error) {
-      console.warn('K-means clustering failed, falling back to dominant color:', error);
+      console.info(`K-means result:`, result ? `${result.length} clusters` : 'null result');
       
-      // Fallback: return single dominant color
-      const avgColor = this.calculateAverageColor(pixels);
-      return [{
-        centroid: [avgColor.R, avgColor.G, avgColor.B],
-        cluster: data
-      }];
+      if (!result || result.length === 0) {
+        throw new Error('K-means returned empty result');
+      }
+      
+      // Map sampled results back to full dataset
+      return result.map(cluster => ({
+        centroid: cluster.centroid,
+        cluster: data.filter(pixel => 
+          this.findClosestCluster([pixel], result.map(c => c.centroid)) === cluster.centroid
+        )
+      }));
+      
+    } catch (error) {
+      console.warn('K-means clustering failed, using fallback method:', error);
+      
+      // Better fallback: use simple color quantization
+      return this.simpleDominantColors(pixels, k);
     }
+  }
+  
+  private sampleArray<T>(array: T[], sampleSize: number): T[] {
+    if (array.length <= sampleSize) return array;
+    
+    const step = array.length / sampleSize;
+    const sampled: T[] = [];
+    
+    for (let i = 0; i < array.length; i += step) {
+      sampled.push(array[Math.floor(i)]);
+    }
+    
+    return sampled.slice(0, sampleSize);
+  }
+  
+  private findClosestCluster(pixel: number[][], centroids: number[][]): number[] {
+    let minDistance = Infinity;
+    let closestCentroid = centroids[0];
+    
+    for (const centroid of centroids) {
+      const distance = Math.sqrt(
+        Math.pow(pixel[0][0] - centroid[0], 2) +
+        Math.pow(pixel[0][1] - centroid[1], 2) +
+        Math.pow(pixel[0][2] - centroid[2], 2)
+      );
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestCentroid = centroid;
+      }
+    }
+    
+    return closestCentroid;
+  }
+  
+  private simpleDominantColors(pixels: RGB[], k: number): any[] {
+    // Simple fallback: quantize colors into buckets
+    console.info('Using simple color quantization fallback');
+    
+    const colorCounts = new Map<string, { count: number; rgb: RGB }>();
+    
+    // Quantize colors to reduce noise
+    for (const pixel of pixels) {
+      const quantized = {
+        R: Math.floor(pixel.R / 16) * 16,
+        G: Math.floor(pixel.G / 16) * 16,
+        B: Math.floor(pixel.B / 16) * 16
+      };
+      
+      const key = `${quantized.R},${quantized.G},${quantized.B}`;
+      const existing = colorCounts.get(key);
+      
+      if (existing) {
+        existing.count++;
+      } else {
+        colorCounts.set(key, { count: 1, rgb: quantized });
+      }
+    }
+    
+    // Get top k colors by frequency
+    const sortedColors = Array.from(colorCounts.entries())
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, k);
+      
+    console.info(`Simple quantization found ${sortedColors.length} dominant colors`);
+    
+    return sortedColors.map(([key, data]) => ({
+      centroid: [data.rgb.R, data.rgb.G, data.rgb.B],
+      cluster: pixels.filter(p => {
+        const quantized = {
+          R: Math.floor(p.R / 16) * 16,
+          G: Math.floor(p.G / 16) * 16,
+          B: Math.floor(p.B / 16) * 16
+        };
+        return `${quantized.R},${quantized.G},${quantized.B}` === key;
+      }).map(p => [p.R, p.G, p.B])
+    }));
   }
 
   private calculateAverageColor(pixels: RGB[]): RGB {
