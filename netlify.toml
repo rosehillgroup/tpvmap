@@ -3,11 +3,11 @@ command = "cd apps/web && npm install && npm run build"
 publish = "apps/web/dist"
 
 [functions]
+directory = "apps/web/.netlify/functions"
 node_bundler = "esbuild"
-included_files = [
-  "data/**",             # TPV colour dataset
-  "apps/web/src/lib/**", # colour science libraries
-]
+
+[functions."*"]
+included_files = ["apps/web/data/**", "apps/web/src/lib/**"]
 
 [functions."api/*"]
 timeout = 26  # keep under provider limits

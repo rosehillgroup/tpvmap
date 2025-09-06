@@ -8,7 +8,7 @@ export default defineConfig({
   integrations: [react()],
   output: 'server',
   adapter: netlify({
-    dist: new URL('./dist/', import.meta.url)
+    mode: 'directory'
   }),
   server: { host: true }
 });
