@@ -1,5 +1,5 @@
 import { getStore } from '@netlify/blobs';
-// import { PaletteExtractor } from '../../lib/extraction/extractor';
+import { PaletteExtractor } from '../../lib/extraction/extractor';
 
 export const prerender = false;
 
@@ -50,53 +50,59 @@ export async function GET(context: any) {
       // Handle both old simple cache format and new structured format
       palette = cachedData.palette || cachedData;
     } else {
-      // Temporarily use mock data to get the site working
-      // TODO: Re-enable real extraction once build issues are resolved
-      palette = [
-        {
-          id: 'demo-1',
-          rgb: { R: 183, G: 30, B: 45 },
-          lab: { L: 39.4, a: 58.5, b: 29.0 },
-          areaPct: 25.5,
-          pageIds: [1],
-          source: 'raster' as const
-        },
-        {
-          id: 'demo-2',
-          rgb: { R: 0, G: 107, B: 63 },
-          lab: { L: 40.5, a: -42.2, b: 17.9 },
-          areaPct: 18.3,
-          pageIds: [1],
-          source: 'raster' as const
-        },
-        {
-          id: 'demo-3',
-          rgb: { R: 212, G: 181, B: 133 },
-          lab: { L: 75.2, a: 3.8, b: 24.8 },
-          areaPct: 15.2,
-          pageIds: [1],
-          source: 'raster' as const
-        },
-        {
-          id: 'demo-4',
-          rgb: { R: 27, G: 79, B: 156 },
-          lab: { L: 36.4, a: 14.2, b: -46.7 },
-          areaPct: 12.1,
-          pageIds: [1],
-          source: 'raster' as const
-        },
-        {
-          id: 'demo-5',
-          rgb: { R: 77, G: 79, B: 83 },
-          lab: { L: 34.1, a: -0.4, b: -2.4 },
-          areaPct: 8.9,
-          pageIds: [1],
-          source: 'raster' as const
-        }
-      ];
+      // Extract colors from the uploaded file
+      const jobData: JobData = JSON.parse(jobDataStr);
       
-      // Cache the palette
-      await store.set(`palettes/${jobId}.json`, JSON.stringify(palette));
+      // Get the uploaded file from storage
+      const fileExtension = jobData.fileName.split('.').pop()?.toLowerCase();
+      const uploadedFile = await store.get(`uploads/${jobId}.${fileExtension}`, { type: 'arrayBuffer' });
+      
+      if (!uploadedFile) {
+        return Response.json({ error: 'Uploaded file not found' }, { status: 404 });
+      }
+
+      console.info(`Extracting palette for ${jobData.fileName} (${uploadedFile.byteLength} bytes)`);
+      
+      // Initialize palette extractor
+      const extractor = new PaletteExtractor({
+        maxColours: 12,
+        minAreaPct: 1.0,
+        rasterOptions: {
+          resampleSize: 400,
+          iterations: 15
+        }
+      });
+      
+      try {
+        const result = await extractor.extract(uploadedFile, jobData.fileName);
+        console.info(`Extracted ${result.palette.length} colors in ${result.metadata.extractionTime}ms`);
+        
+        // Convert to our PaletteEntry format
+        palette = result.palette.map(color => ({
+          id: color.id,
+          rgb: color.rgb,
+          lab: color.lab,
+          areaPct: color.areaPct,
+          pageIds: color.pageIds || [1],
+          source: color.source,
+          metadata: color.metadata
+        }));
+        
+        // Cache the palette with extraction metadata
+        await store.set(`palettes/${jobId}.json`, JSON.stringify({
+          palette,
+          extractionMetadata: result.metadata,
+          warnings: result.warnings,
+          extractedAt: new Date().toISOString()
+        }));
+        
+      } catch (error) {
+        console.error('Color extraction failed:', error);
+        return Response.json({ 
+          error: 'Color extraction failed', 
+          details: error instanceof Error ? error.message : String(error) 
+        }, { status: 500 });
+      }
     }
     
     // Filter by scope if needed
