@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ResultsView from '../components/ResultsView';
+
+const jobId = Astro.url.searchParams.get('jobId');
+
+if (!jobId) {
+  return Astro.redirect('/');
+}
+---
+
+<Layout title="TPV Match - Results">
+  <main class="container">
+    <ResultsView jobId={jobId} client:load />
+  </main>
+</Layout>

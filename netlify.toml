@@ -1,0 +1,49 @@
+[build]
+command = "cd apps/web && npm run build"
+publish = "apps/web/dist"
+
+[functions]
+node_bundler = "esbuild"
+included_files = [
+  "data/**",             # TPV colour dataset
+  "apps/web/src/lib/**", # colour science libraries
+]
+
+[functions."api/*"]
+timeout = 26  # keep under provider limits
+memory = 1536
+
+# Security headers and CORS
+[[headers]]
+for = "/api/*"
+[headers.values]
+Access-Control-Allow-Origin = "*"
+Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+# Cache static assets
+[[headers]]
+for = "/*"
+[headers.values]
+X-Frame-Options = "DENY"
+X-XSS-Protection = "1; mode=block"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache thumbnails
+[[headers]]
+for = "/api/thumbnail/*"
+[headers.values]
+Cache-Control = "public, max-age=86400" # 24 hours
+
+# Single page app fallback if needed
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+conditions = {Role = ["user"]}
+
+# Environment variables
+[build.environment]
+NODE_VERSION = "20"
+NETLIFY_USE_PNPM = "false"
