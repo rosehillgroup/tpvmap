@@ -47,9 +47,10 @@ export class BlendSolver {
     }
     
     const twoWayResults = this.twoWayCache.findBestMatches(targetLab, 10);
+    let best2Way: BlendResult | undefined;
     
     if (this.constraints.maxComponents >= 2) {
-      const best2Way = twoWayResults[0];
+      best2Way = twoWayResults[0];
       if (best2Way) {
         results.push(this.createRecipe(best2Way, '2-component blend'));
       }
