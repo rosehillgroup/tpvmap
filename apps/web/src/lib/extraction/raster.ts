@@ -212,8 +212,7 @@ export class RasterExtractor {
       
       const result = kmeans(sampledData, actualK, {
         maxIterations: this.options.iterations,
-        tolerance: 2.0,
-        initialization: 'random'
+        tolerance: 2.0
       });
       
       console.info(`K-means result:`, result ? `${result.length} clusters` : 'null result');
@@ -277,12 +276,12 @@ export class RasterExtractor {
     
     const colorCounts = new Map<string, { count: number; rgb: RGB }>();
     
-    // Quantize colors to reduce noise
+    // Quantize colors to reduce noise (use smaller quantization for better accuracy)
     for (const pixel of pixels) {
       const quantized = {
-        R: Math.floor(pixel.R / 16) * 16,
-        G: Math.floor(pixel.G / 16) * 16,
-        B: Math.floor(pixel.B / 16) * 16
+        R: Math.floor(pixel.R / 8) * 8,
+        G: Math.floor(pixel.G / 8) * 8,
+        B: Math.floor(pixel.B / 8) * 8
       };
       
       const key = `${quantized.R},${quantized.G},${quantized.B}`;
@@ -306,9 +305,9 @@ export class RasterExtractor {
       centroid: [data.rgb.R, data.rgb.G, data.rgb.B],
       cluster: pixels.filter(p => {
         const quantized = {
-          R: Math.floor(p.R / 16) * 16,
-          G: Math.floor(p.G / 16) * 16,
-          B: Math.floor(p.B / 16) * 16
+          R: Math.floor(p.R / 8) * 8,
+          G: Math.floor(p.G / 8) * 8,
+          B: Math.floor(p.B / 8) * 8
         };
         return `${quantized.R},${quantized.G},${quantized.B}` === key;
       }).map(p => [p.R, p.G, p.B])

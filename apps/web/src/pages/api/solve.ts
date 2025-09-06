@@ -53,7 +53,9 @@ export async function POST(context: any) {
       return Response.json({ error: 'Palette not found. Extract palette first.' }, { status: 404 });
     }
     
-    const palette: PaletteEntry[] = JSON.parse(paletteStr);
+    const paletteData = JSON.parse(paletteStr);
+    // Handle both old simple format and new structured format
+    const palette: PaletteEntry[] = paletteData.palette || paletteData;
     
     // Initialize the blend solver
     const solver = new BlendSolver(tpvColours as TPVColour[], constraints);
