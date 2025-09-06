@@ -1,4 +1,3 @@
-import { createCanvas, loadImage, ImageData } from 'canvas';
 import sharp from 'sharp';
 import kmeans from 'kmeans-js';
 import type { RGB } from '../colour/types';
@@ -238,11 +237,12 @@ export class RasterExtractor {
   async renderPDFPageToCanvas(
     pdfPage: any,
     scale: number = 1
-  ): Promise<HTMLCanvasElement | null> {
+  ): Promise<any | null> {
     try {
-      const viewport = pdfPage.getViewport({ scale });
+      // Dynamic import for server-side rendering
+      const { createCanvas } = await import('canvas');
       
-      // Create canvas for server-side rendering
+      const viewport = pdfPage.getViewport({ scale });
       const canvas = createCanvas(viewport.width, viewport.height);
       const context = canvas.getContext('2d');
 
@@ -252,7 +252,7 @@ export class RasterExtractor {
       };
 
       await pdfPage.render(renderContext).promise;
-      return canvas as any; // Type assertion for compatibility
+      return canvas;
     } catch (error) {
       console.error('Failed to render PDF page to canvas:', error);
       return null;

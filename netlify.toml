@@ -40,5 +40,5 @@ Cache-Control = "public, max-age=86400" # 24 hours
 
 # Environment variables
 [build.environment]
-NODE_VERSION = "20"
+NODE_VERSION = "20.16.0"
 NETLIFY_USE_PNPM = "false"
