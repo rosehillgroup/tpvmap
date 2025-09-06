@@ -1,2 +1,2 @@
 /_astro/*    /_astro/:splat   200
-/*           /.netlify/functions/ssr   200
+/*           /.netlify/functions/astro-ssr   200
