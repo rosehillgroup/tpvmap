@@ -3,7 +3,7 @@ command = "cd apps/web && npm install && npm run build"
 publish = "apps/web/dist"
 
 [functions]
-directory = "apps/web/.netlify/functions"
+directory = "apps/web/.netlify/v1/functions"
 node_bundler = "esbuild"
 
 [functions."*"]
