@@ -241,11 +241,16 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
     border-color: var(--color-accent);
   }
 
-  /* Mobile Card View - Hidden by default */
-  .mobile-cards {
-    display: none;
+  /* Mobile Card View - Hidden by default with high specificity */
+  .palette-container .mobile-cards {
+    display: none !important;
     flex-direction: column;
     gap: 1.5rem;
+  }
+
+  /* Desktop Table - Shown by default with high specificity */
+  .palette-container .desktop-table {
+    display: block !important;
   }
 
   .palette-header {
@@ -314,15 +319,17 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
     flex: 1;
   }
 
-  .mobile-cards .color-swatch {
+  .palette-container .mobile-cards .color-swatch {
     width: 64px;
     height: 64px;
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     border: 3px solid var(--color-border-light);
     flex-shrink: 0;
-    display: block;
-    background: var(--color-surface);
+    display: block !important;
+    background: var(--color-surface) !important;
+    min-height: 64px;
+    min-width: 64px;
   }
 
   .color-info {
@@ -385,13 +392,13 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
   }
 
   @media (max-width: 768px) {
-    /* Hide desktop table, show mobile cards */
-    .desktop-table {
-      display: none;
+    /* Hide desktop table, show mobile cards - with high specificity */
+    .palette-container .desktop-table {
+      display: none !important;
     }
 
-    .mobile-cards {
-      display: flex;
+    .palette-container .mobile-cards {
+      display: flex !important;
     }
 
     .color-grid {
@@ -402,9 +409,11 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
       padding: 1rem;
     }
 
-    .mobile-cards .color-swatch {
-      width: 56px;
-      height: 56px;
+    .palette-container .mobile-cards .color-swatch {
+      width: 56px !important;
+      height: 56px !important;
+      min-width: 56px;
+      min-height: 56px;
     }
 
     .hex-code {
@@ -431,9 +440,11 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
       gap: 0.75rem;
     }
 
-    .mobile-cards .color-swatch {
-      width: 48px;
-      height: 48px;
+    .palette-container .mobile-cards .color-swatch {
+      width: 48px !important;
+      height: 48px !important;
+      min-width: 48px;
+      min-height: 48px;
     }
 
     .hex-code {
