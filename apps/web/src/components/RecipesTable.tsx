@@ -445,7 +445,9 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
                           </div>
                         )}
                         <div className="components">
-                          {Object.entries(recipe.weights).map(([code, weight]) => (
+                          {Object.entries(recipe.weights)
+                            .sort(([,a], [,b]) => b - a) // Sort by weight descending to match parts/percentages order
+                            .map(([code, weight]) => (
                             <span key={code} className="component">
                               {getTPVName(code)}
                             </span>
