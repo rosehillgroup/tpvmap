@@ -36,13 +36,12 @@ async function getImageInfo(buffer: Buffer): Promise<{ width: number; height: nu
   };
 }
 
-async function generatePDFThumbnail(pdfBuffer: ArrayBuffer): Promise<{ buffer: Buffer; width: number; height: number } | null> {
+async function getPDFDimensions(pdfBuffer: ArrayBuffer): Promise<{ width: number; height: number } | null> {
   try {
-    // Import PDF.js for server-side rendering
+    // Just get PDF dimensions without rendering - no canvas needed
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    (pdfjs.GlobalWorkerOptions as any).workerSrc = null; // Disable worker in server environment
+    (pdfjs.GlobalWorkerOptions as any).workerSrc = null;
     
-    // Load PDF document
     const pdf = await pdfjs.getDocument({ 
       data: pdfBuffer,
       useSystemFonts: false,
@@ -53,41 +52,15 @@ async function generatePDFThumbnail(pdfBuffer: ArrayBuffer): Promise<{ buffer: B
       throw new Error('PDF has no pages');
     }
     
-    // Get first page
     const page = await pdf.getPage(1);
     const viewport = page.getViewport({ scale: 1.0 });
     
-    // Create canvas
-    const { createCanvas } = await import('canvas');
-    const canvas = createCanvas(viewport.width, viewport.height);
-    const context = canvas.getContext('2d');
-    
-    // Render page to canvas
-    const renderContext = {
-      canvasContext: context,
-      viewport: viewport,
-      canvas: canvas as any
-    };
-    
-    await page.render(renderContext).promise;
-    
-    // Convert canvas to image buffer
-    const canvasBuffer = canvas.toBuffer('image/png');
-    
-    // Generate thumbnail using Sharp
-    const { default: sharp } = await import('sharp');
-    const thumbnailBuffer = await sharp(canvasBuffer)
-      .resize(200, 200, { fit: 'inside' })
-      .png()
-      .toBuffer();
-    
     return {
-      buffer: thumbnailBuffer,
-      width: viewport.width,
-      height: viewport.height
+      width: Math.floor(viewport.width),
+      height: Math.floor(viewport.height)
     };
   } catch (error) {
-    console.error('Failed to generate PDF thumbnail:', error);
+    console.error('Failed to get PDF dimensions:', error);
     return null;
   }
 }
@@ -152,28 +125,20 @@ export async function POST(context: any) {
         previewUrl: `/api/thumbnail/${jobId}-page-1.png`
       });
     } else if (fileType === 'application/pdf') {
-      // Generate PDF thumbnail
-      console.info('Generating PDF thumbnail...');
-      const pdfThumbnail = await generatePDFThumbnail(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
+      // Get PDF dimensions without rendering (no canvas needed)
+      console.info('Getting PDF dimensions...');
+      const pdfDimensions = await getPDFDimensions(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
       
-      if (pdfThumbnail) {
-        console.info('PDF thumbnail generated successfully:', {
-          width: pdfThumbnail.width,
-          height: pdfThumbnail.height,
-          size: pdfThumbnail.buffer.length
-        });
-        
-        // Store PDF thumbnail
-        await store.set(`thumbnails/${jobId}-page-1.png`, pdfThumbnail.buffer);
-        
+      if (pdfDimensions) {
+        console.info('PDF dimensions retrieved:', pdfDimensions);
         pages.push({
           id: 'page-1',
-          width: pdfThumbnail.width,
-          height: pdfThumbnail.height,
-          previewUrl: `/api/thumbnail/${jobId}-page-1.png`
+          width: pdfDimensions.width,
+          height: pdfDimensions.height,
+          previewUrl: '/placeholder-pdf.png' // Client will generate thumbnail
         });
       } else {
-        console.warn('PDF thumbnail generation failed, using placeholder');
+        console.warn('PDF dimension extraction failed, using default dimensions');
         pages.push({
           id: 'page-1',
           width: 595,

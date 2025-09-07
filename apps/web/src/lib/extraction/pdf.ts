@@ -105,11 +105,13 @@ export class PDFExtractor {
   private async extractPageColours(page: any, pageNum: number) {
     const colours: PDFColour[] = [];
     let objectCount = 0;
+    let currentFillColor: RGB | null = null;
+    let currentStrokeColor: RGB | null = null;
 
     try {
-      // Get page content stream
-      const textContent = await page.getTextContent();
       const operatorList = await page.getOperatorList();
+      const pdfjs = await configurePDFJS();
+      const OPS = pdfjs.OPS;
       
       // Process operator list for colour commands
       for (let i = 0; i < operatorList.fnArray.length; i++) {
@@ -118,48 +120,129 @@ export class PDFExtractor {
         
         objectCount++;
 
-        // Handle different colour space operations
+        // Track current colors and register them when paint operations occur
         switch (fn) {
-          case 1: // OPS.setFillRGBColor
-          case 2: // OPS.setStrokeRGBColor
+          // RGB Color Setting Operations
+          case OPS.setFillRGBColor:
             if (args.length >= 3) {
-              const rgb: RGB = {
+              currentFillColor = {
                 R: Math.round(args[0] * 255),
                 G: Math.round(args[1] * 255),
                 B: Math.round(args[2] * 255)
               };
+            }
+            break;
+            
+          case OPS.setStrokeRGBColor:
+            if (args.length >= 3) {
+              currentStrokeColor = {
+                R: Math.round(args[0] * 255),
+                G: Math.round(args[1] * 255),
+                B: Math.round(args[2] * 255)
+              };
+            }
+            break;
+
+          // Grayscale Operations
+          case OPS.setFillGray:
+            if (args.length >= 1) {
+              const gray = Math.round(args[0] * 255);
+              currentFillColor = { R: gray, G: gray, B: gray };
+            }
+            break;
+            
+          case OPS.setStrokeGray:
+            if (args.length >= 1) {
+              const gray = Math.round(args[0] * 255);
+              currentStrokeColor = { R: gray, G: gray, B: gray };
+            }
+            break;
+
+          // CMYK Operations
+          case OPS.setFillCMYKColor:
+            if (args.length >= 4) {
+              currentFillColor = this.cmykToRgb(args[0], args[1], args[2], args[3]);
+            }
+            break;
+            
+          case OPS.setStrokeCMYKColor:
+            if (args.length >= 4) {
+              currentStrokeColor = this.cmykToRgb(args[0], args[1], args[2], args[3]);
+            }
+            break;
+
+          // Generic Color Setting (for complex color spaces)
+          case OPS.setFillColorN:
+            if (args.length >= 3) {
+              currentFillColor = {
+                R: Math.round(Math.min(1, Math.max(0, args[0])) * 255),
+                G: Math.round(Math.min(1, Math.max(0, args[1])) * 255),
+                B: Math.round(Math.min(1, Math.max(0, args[2])) * 255)
+              };
+            } else if (args.length === 4) {
+              // Assume CMYK
+              currentFillColor = this.cmykToRgb(args[0], args[1], args[2], args[3]);
+            } else if (args.length === 1) {
+              // Assume grayscale
+              const gray = Math.round(args[0] * 255);
+              currentFillColor = { R: gray, G: gray, B: gray };
+            }
+            break;
+            
+          case OPS.setStrokeColorN:
+            if (args.length >= 3) {
+              currentStrokeColor = {
+                R: Math.round(Math.min(1, Math.max(0, args[0])) * 255),
+                G: Math.round(Math.min(1, Math.max(0, args[1])) * 255),
+                B: Math.round(Math.min(1, Math.max(0, args[2])) * 255)
+              };
+            } else if (args.length === 4) {
+              currentStrokeColor = this.cmykToRgb(args[0], args[1], args[2], args[3]);
+            } else if (args.length === 1) {
+              const gray = Math.round(args[0] * 255);
+              currentStrokeColor = { R: gray, G: gray, B: gray };
+            }
+            break;
+
+          // Paint Operations - record colors when they're actually used
+          case OPS.fill:
+          case OPS.eoFill:
+            if (currentFillColor) {
               colours.push({
-                rgb,
+                rgb: currentFillColor,
                 frequency: 1,
-                area: this.estimateArea(fn, args),
+                area: this.estimateAreaFromOperation(fn, args, 'fill'),
                 pageIds: []
               });
             }
             break;
-            
-          case 3: // OPS.setFillColorN (for device color spaces)
-          case 4: // OPS.setStrokeColorN
-            if (args.length >= 3) {
-              // Handle DeviceRGB color space
-              const rgb: RGB = {
-                R: Math.round(args[0] * 255),
-                G: Math.round(args[1] * 255),
-                B: Math.round(args[2] * 255)
-              };
+
+          case OPS.stroke:
+            if (currentStrokeColor) {
               colours.push({
-                rgb,
+                rgb: currentStrokeColor,
                 frequency: 1,
-                area: this.estimateArea(fn, args),
+                area: this.estimateAreaFromOperation(fn, args, 'stroke'),
                 pageIds: []
               });
-            } else if (args.length === 4) {
-              // Handle DeviceCMYK color space - convert to RGB approximation
-              const [c, m, y, k] = args;
-              const rgb = this.cmykToRgb(c, m, y, k);
+            }
+            break;
+
+          case OPS.fillStroke:
+          case OPS.eoFillStroke:
+            if (currentFillColor) {
               colours.push({
-                rgb,
+                rgb: currentFillColor,
                 frequency: 1,
-                area: this.estimateArea(fn, args),
+                area: this.estimateAreaFromOperation(fn, args, 'fill'),
+                pageIds: []
+              });
+            }
+            if (currentStrokeColor) {
+              colours.push({
+                rgb: currentStrokeColor,
+                frequency: 1,
+                area: this.estimateAreaFromOperation(fn, args, 'stroke'),
                 pageIds: []
               });
             }
@@ -167,6 +250,7 @@ export class PDFExtractor {
         }
       }
 
+      console.info(`Page ${pageNum}: Found ${colours.length} color operations from ${objectCount} total operations`);
       return { colours, objectCount };
     } catch (error) {
       console.warn(`Failed to extract colors from page ${pageNum}:`, error);
@@ -174,16 +258,19 @@ export class PDFExtractor {
     }
   }
 
-  private estimateArea(operation: number, args: any[]): number {
-    // Rough area estimation based on operation type
-    // Fill operations typically cover more area than strokes
-    switch (operation) {
-      case 1: // Fill RGB
-      case 3: // Fill ColorN
-        return 10; // Assume fills cover more area
-      case 2: // Stroke RGB
-      case 4: // Stroke ColorN
-        return 1; // Strokes typically less area
+  private estimateAreaFromOperation(operation: number, args: any[], type: 'fill' | 'stroke'): number {
+    // Better area estimation based on paint operation type
+    // In a proper implementation, we'd analyze the path data to get actual areas
+    // For now, use heuristics based on operation type
+    
+    switch (type) {
+      case 'fill':
+        // Fill operations typically cover significant area
+        // Scale based on number of path arguments (rough proxy for complexity)
+        return Math.max(5, Math.min(50, (args.length || 1) * 10));
+      case 'stroke':
+        // Stroke operations cover less area (just outlines)
+        return Math.max(1, Math.min(10, (args.length || 1) * 2));
       default:
         return 1;
     }

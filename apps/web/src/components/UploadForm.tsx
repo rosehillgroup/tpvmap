@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
+import { generatePDFThumbnail, uploadPDFThumbnail } from '../lib/client/pdfProcessor';
 
 interface UploadResponse {
   jobId: string;
@@ -72,11 +73,12 @@ export default function UploadForm() {
     setError(null);
   };
 
-  const simulateProgress = async (jobId: string) => {
+  const simulateProgress = async (jobId: string, isPdf: boolean = false) => {
     // Simulate progressive loading stages
     const stages = [
       { stage: 'uploading' as const, progress: 20, message: 'File uploaded successfully' },
-      { stage: 'processing' as const, progress: 40, message: 'Processing file structure...' },
+      ...(isPdf ? [{ stage: 'processing' as const, progress: 35, message: 'Generating PDF thumbnail...' }] : []),
+      { stage: 'processing' as const, progress: isPdf ? 50 : 40, message: 'Processing file structure...' },
       { stage: 'extracting' as const, progress: 70, message: 'Extracting colour palette...' },
       { stage: 'caching' as const, progress: 90, message: 'Optimising results...' },
       { stage: 'complete' as const, progress: 100, message: 'Ready to view results!' }
@@ -96,6 +98,8 @@ export default function UploadForm() {
   const handleSubmit = async () => {
     if (!file) return;
     
+    const isPdf = file.type === 'application/pdf';
+    
     setLoading(true);
     setError(null);
     setProgress({ stage: 'uploading', progress: 5, message: 'Uploading file...' });
@@ -104,6 +108,7 @@ export default function UploadForm() {
     formData.append('file', file);
     
     try {
+      // Upload the file first
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData
@@ -115,8 +120,35 @@ export default function UploadForm() {
       
       const data: UploadResponse = await response.json();
       
+      // If it's a PDF, generate thumbnail on client side
+      if (isPdf) {
+        setProgress({ stage: 'processing', progress: 25, message: 'Generating PDF thumbnail...' });
+        
+        try {
+          const thumbnailResult = await generatePDFThumbnail(file);
+          if (thumbnailResult) {
+            console.info('PDF thumbnail generated:', {
+              width: thumbnailResult.width,
+              height: thumbnailResult.height,
+              renderTime: thumbnailResult.renderTime
+            });
+            
+            // Upload the thumbnail
+            const uploadSuccess = await uploadPDFThumbnail(data.jobId, thumbnailResult.thumbnailBlob);
+            if (!uploadSuccess) {
+              console.warn('Failed to upload PDF thumbnail, continuing anyway');
+            }
+          } else {
+            console.warn('Failed to generate PDF thumbnail, continuing anyway');
+          }
+        } catch (thumbnailError) {
+          console.error('PDF thumbnail generation failed:', thumbnailError);
+          // Continue anyway - the placeholder will be used
+        }
+      }
+      
       // Start progressive loading simulation
-      await simulateProgress(data.jobId);
+      await simulateProgress(data.jobId, isPdf);
     } catch (err) {
       setError('Failed to upload file. Please try again.');
       setProgress({ stage: 'error', progress: 0, message: 'Upload failed' });
