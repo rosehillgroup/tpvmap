@@ -77,10 +77,10 @@ export class SmartBlendSolver {
     return {
       components: recipe.components,
       mode: this.constraints.mode,
-      parts: recipe.parts ? {
+      parts: recipe.parts && recipe.total ? {
         codes: Object.keys(recipe.parts),
         parts: Object.values(recipe.parts),
-        total: recipe.total || 0
+        total: recipe.total
       } : undefined,
       lab: recipe.lab,
       deltaE: recipe.deltaE,
@@ -98,13 +98,16 @@ export class SmartBlendSolver {
         return obj;
       }, {} as Record<string, number>) : undefined;
 
+    // Calculate RGB from weights using the mixing system
+    const rgb = this.calculateRGBFromWeights(dedupeRecipe.weights);
+
     return {
       components: dedupeRecipe.components,
       weights: dedupeRecipe.weights,
       parts: partsObj,
       total: dedupeRecipe.parts?.total,
       lab: dedupeRecipe.lab,
-      rgb: this.labToRGB(dedupeRecipe.lab),
+      rgb,
       deltaE: dedupeRecipe.deltaE,
       baseDeltaE: dedupeRecipe.deltaE, // Approximation
       note: dedupeRecipe.mode === 'parts' ? 'Parts blend' : 'Percentage blend',
@@ -113,24 +116,26 @@ export class SmartBlendSolver {
   }
 
   /**
-   * Convert Lab to RGB for display using existing conversion pipeline
+   * Calculate RGB from weights using the color mixing system
    */
-  private labToRGB(lab: Lab): { R: number; G: number; B: number } {
-    // Use existing conversion functions from convert.ts
-    try {
-      const xyz = { 
-        X: lab.L / 116 + 0.16, // Simplified - should use proper Lab to XYZ
-        Y: lab.L / 116,
-        Z: lab.L / 116 - 0.2
-      };
-      const linearRGB = linearRGBToXYZ(xyz as any); // This needs proper implementation
-      return linearRGBToSRGB(linearRGB as any);
-    } catch {
-      // Fallback to neutral gray if conversion fails
-      const gray = Math.round(lab.L * 2.55); // Rough L* to RGB
-      return { R: gray, G: gray, B: gray };
+  private calculateRGBFromWeights(weights: Record<string, number>): { R: number; G: number; B: number } {
+    const components = Object.entries(weights).map(([code, weight]) => {
+      const colour = this.enhancedColours.find(c => c.code === code);
+      if (!colour) {
+        // Fallback for unknown colors
+        return { color: { R: 0.5, G: 0.5, B: 0.5 }, weight };
+      }
+      return { color: colour.linearRGB, weight };
+    });
+
+    if (components.length === 0) {
+      return { R: 128, G: 128, B: 128 }; // Neutral gray fallback
     }
+
+    const mixedLinear = mixLinearRGB(components);
+    return linearRGBToSRGB(mixedLinear);
   }
+
 
   /**
    * Solve for best blends matching target color with enhanced deduplication

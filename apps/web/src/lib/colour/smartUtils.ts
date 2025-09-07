@@ -196,12 +196,12 @@ export interface DedupeRecipe {
  * Pareto comparison: fewer components → lower parts total → lower ΔE
  */
 export function better(a: DedupeRecipe, b: DedupeRecipe): boolean {
-  const compA = a.mode === 'parts' ? a.parts!.codes.length : a.components.length;
-  const compB = b.mode === 'parts' ? b.parts!.codes.length : b.components.length;
+  const compA = a.mode === 'parts' && a.parts ? a.parts.codes.length : a.components.length;
+  const compB = b.mode === 'parts' && b.parts ? b.parts.codes.length : b.components.length;
   if (compA !== compB) return compA < compB;
   
-  const totA = a.mode === 'parts' ? a.parts!.total : Infinity;
-  const totB = b.mode === 'parts' ? b.parts!.total : Infinity;
+  const totA = a.mode === 'parts' && a.parts ? a.parts.total : Infinity;
+  const totB = b.mode === 'parts' && b.parts ? b.parts.total : Infinity;
   if (totA !== totB) return totA < totB;
   
   return a.deltaE < b.deltaE;
@@ -211,8 +211,8 @@ export function better(a: DedupeRecipe, b: DedupeRecipe): boolean {
  * Stable ranking function for consistent ordering
  */
 export function rank(r: DedupeRecipe): number {
-  const comp = r.mode === 'parts' ? r.parts!.codes.length : r.components.length;
-  const tot = r.mode === 'parts' ? r.parts!.total : 9999;
+  const comp = r.mode === 'parts' && r.parts ? r.parts.codes.length : r.components.length;
+  const tot = r.mode === 'parts' && r.parts ? r.parts.total : 9999;
   return (comp * 1000) + tot + r.deltaE; // Small ΔE tie-breaker
 }
 
