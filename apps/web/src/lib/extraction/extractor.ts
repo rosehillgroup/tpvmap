@@ -107,40 +107,11 @@ export class PaletteExtractor {
       let pdfColours: PaletteColour[] = [];
       let rasterColours: PaletteColour[] = [];
 
-      // Extract from PDF (vector + text colors)
+      // Skip server-side PDF processing entirely - client handles everything
       if (fileValidation.type === 'pdf') {
-        try {
-          progressLoader?.updateProgress('extracting', 25, 'Extracting PDF vector colors...');
-          const pdfResult = await this.pdfExtractor.extract(fileBuffer);
-          
-          pdfColours = pdfResult.colours.map((color, index) => ({
-            id: generateColourId(color.rgb, 'pdf'),
-            rgb: color.rgb,
-            lab: this.converter.rgbToLab(color.rgb),
-            areaPct: (color.area / pdfResult.colours.reduce((sum, c) => sum + c.area, 0)) * 100,
-            pageIds: color.pageIds,
-            source: 'pdf' as const,
-            metadata: {
-              frequency: color.frequency
-            }
-          }));
-
-          sources.push('pdf');
-          
-          if (pdfColours.length === 0) {
-            warnings.push('No colors found in PDF vector content');
-          }
-        } catch (error) {
-          warnings.push(`PDF extraction failed: ${error.message}`);
-          if (!this.options.rasterFallback) {
-            throw error;
-          }
-        }
-
-        // Skip server-side PDF raster extraction - client handles this now
-        if (pdfColours.length === 0) {
-          warnings.push('No vector colors found in PDF. Use client-side raster extraction for better color detection.');
-        }
+        progressLoader?.updateProgress('extracting', 25, 'Skipping server PDF processing - client handles extraction...');
+        warnings.push('PDF processing handled client-side. Server extraction skipped to avoid canvas dependencies.');
+        console.info('Skipping server-side PDF processing - relying on client-side extraction');
       }
 
       // Extract from raster images

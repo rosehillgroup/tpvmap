@@ -121,11 +121,14 @@ export default function UploadForm() {
       
       // If it's a PDF, generate thumbnail on client side
       if (isPdf) {
+        console.info('PDF detected, starting client-side processing...');
         setProgress({ stage: 'processing', progress: 25, message: 'Generating PDF thumbnail...' });
         
         try {
           // Dynamic import to avoid server-side loading
+          console.info('Loading PDF processor modules...');
           const { generatePDFThumbnail, uploadPDFThumbnail, extractAndUploadPDFColors } = await import('../lib/client/pdfProcessor');
+          console.info('PDF processor modules loaded successfully');
           
           // Generate thumbnail
           const thumbnailResult = await generatePDFThumbnail(file);
