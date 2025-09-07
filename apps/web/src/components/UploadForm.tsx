@@ -95,9 +95,11 @@ export default function UploadForm() {
   };
 
   const handleSubmit = async () => {
+    console.info('UploadForm handleSubmit called');
     if (!file) return;
     
     const isPdf = file.type === 'application/pdf';
+    console.info('File details:', { name: file.name, type: file.type, size: file.size, isPdf });
     
     setLoading(true);
     setError(null);
@@ -127,8 +129,11 @@ export default function UploadForm() {
         try {
           // Dynamic import to avoid server-side loading
           console.info('Loading PDF processor modules...');
-          const { generatePDFThumbnail, uploadPDFThumbnail, extractAndUploadPDFColors } = await import('../lib/client/pdfProcessor');
-          console.info('PDF processor modules loaded successfully');
+          const pdfProcessorModule = await import('../lib/client/pdfProcessor');
+          console.info('PDF processor modules loaded successfully:', Object.keys(pdfProcessorModule));
+          
+          const { generatePDFThumbnail, uploadPDFThumbnail, extractAndUploadPDFColors } = pdfProcessorModule;
+          console.info('PDF processor functions extracted:', { generatePDFThumbnail: !!generatePDFThumbnail, uploadPDFThumbnail: !!uploadPDFThumbnail, extractAndUploadPDFColors: !!extractAndUploadPDFColors });
           
           // Generate thumbnail
           const thumbnailResult = await generatePDFThumbnail(file);
@@ -156,6 +161,11 @@ export default function UploadForm() {
           }
         } catch (thumbnailError) {
           console.error('PDF processing failed:', thumbnailError);
+          console.error('Error details:', {
+            name: thumbnailError.name,
+            message: thumbnailError.message,
+            stack: thumbnailError.stack
+          });
           // Continue anyway - the server will handle fallbacks
         }
       }
