@@ -113,6 +113,13 @@ export class PDFExtractor {
       const pdfjs = await configurePDFJS();
       const OPS = pdfjs.OPS;
       
+      // Debug: Count operation types
+      const opCounts = new Map<number, number>();
+      for (const fn of operatorList.fnArray) {
+        opCounts.set(fn, (opCounts.get(fn) || 0) + 1);
+      }
+      console.info(`Page ${pageNum} operation counts:`, Array.from(opCounts.entries()).slice(0, 10));
+      
       // Process operator list for colour commands
       for (let i = 0; i < operatorList.fnArray.length; i++) {
         const fn = operatorList.fnArray[i];
@@ -251,6 +258,16 @@ export class PDFExtractor {
       }
 
       console.info(`Page ${pageNum}: Found ${colours.length} color operations from ${objectCount} total operations`);
+      
+      // Debug: Log some of the operations we saw
+      if (colours.length > 0) {
+        console.info(`Page ${pageNum} sample colors:`, colours.slice(0, 3).map(c => 
+          `RGB(${c.rgb.R},${c.rgb.G},${c.rgb.B}) area:${c.area}`
+        ));
+      } else {
+        console.warn(`Page ${pageNum}: No colors found - this may indicate the PDF uses unsupported color operations`);
+      }
+      
       return { colours, objectCount };
     } catch (error) {
       console.warn(`Failed to extract colors from page ${pageNum}:`, error);

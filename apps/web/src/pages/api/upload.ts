@@ -36,34 +36,6 @@ async function getImageInfo(buffer: Buffer): Promise<{ width: number; height: nu
   };
 }
 
-async function getPDFDimensions(pdfBuffer: ArrayBuffer): Promise<{ width: number; height: number } | null> {
-  try {
-    // Just get PDF dimensions without rendering - no canvas needed
-    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    (pdfjs.GlobalWorkerOptions as any).workerSrc = null;
-    
-    const pdf = await pdfjs.getDocument({ 
-      data: pdfBuffer,
-      useSystemFonts: false,
-      isEvalSupported: false 
-    }).promise;
-    
-    if (pdf.numPages === 0) {
-      throw new Error('PDF has no pages');
-    }
-    
-    const page = await pdf.getPage(1);
-    const viewport = page.getViewport({ scale: 1.0 });
-    
-    return {
-      width: Math.floor(viewport.width),
-      height: Math.floor(viewport.height)
-    };
-  } catch (error) {
-    console.error('Failed to get PDF dimensions:', error);
-    return null;
-  }
-}
 
 export async function POST(context: any) {
   try {
@@ -125,27 +97,14 @@ export async function POST(context: any) {
         previewUrl: `/api/thumbnail/${jobId}-page-1.png`
       });
     } else if (fileType === 'application/pdf') {
-      // Get PDF dimensions without rendering (no canvas needed)
-      console.info('Getting PDF dimensions...');
-      const pdfDimensions = await getPDFDimensions(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
-      
-      if (pdfDimensions) {
-        console.info('PDF dimensions retrieved:', pdfDimensions);
-        pages.push({
-          id: 'page-1',
-          width: pdfDimensions.width,
-          height: pdfDimensions.height,
-          previewUrl: '/placeholder-pdf.png' // Client will generate thumbnail
-        });
-      } else {
-        console.warn('PDF dimension extraction failed, using default dimensions');
-        pages.push({
-          id: 'page-1',
-          width: 595,
-          height: 842,
-          previewUrl: '/placeholder-pdf.png'
-        });
-      }
+      // Skip server-side PDF processing - client will handle everything
+      console.info('PDF detected, client will generate thumbnail and extract dimensions');
+      pages.push({
+        id: 'page-1',
+        width: 595,  // Default dimensions, client will update
+        height: 842,
+        previewUrl: '/placeholder-pdf.png' // Client will generate and upload thumbnail
+      });
     }
     
     // Store job metadata

@@ -27,16 +27,23 @@ export async function generatePDFThumbnail(
   const startTime = Date.now();
   
   try {
+    console.info('Starting PDF thumbnail generation...');
+    
     // Dynamic import to avoid server-side loading
     const pdfjsLib = await import('pdfjs-dist');
+    console.info('PDF.js loaded, version:', pdfjsLib.version);
     
     // Configure worker if not already configured
     if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+      console.info('PDF.js worker configured');
     }
     
     const arrayBuffer = await file.arrayBuffer();
+    console.info('PDF file read, size:', arrayBuffer.byteLength);
+    
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    console.info('PDF document loaded, pages:', pdf.numPages);
     
     if (pdf.numPages === 0) {
       throw new Error('PDF has no pages');
@@ -45,6 +52,7 @@ export async function generatePDFThumbnail(
     // Get first page
     const page = await pdf.getPage(1);
     const viewport = page.getViewport({ scale: 1.0 });
+    console.info('Page viewport:', viewport.width, 'x', viewport.height);
     
     // Calculate scale to fit within maxSize while maintaining aspect ratio
     const scale = Math.min(maxSize / viewport.width, maxSize / viewport.height);
