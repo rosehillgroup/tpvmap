@@ -61,6 +61,18 @@ function generatePDFHTML(recipes: Record<string, Recipe[]>, palette: PaletteEntr
     if (!target || targetRecipes.length === 0) return '';
     
     const recipe = targetRecipes[0]; // Use best recipe
+    
+    // Debug: Log which recipe is selected for PDF export  
+    console.log(`[${targetId}] PDF Export - Selected recipe:`, {
+      index: 0,
+      weightsCount: Object.keys(recipe.weights).length,
+      weights: recipe.weights,
+      hasPartsData: !!recipe.parts,
+      partsCount: recipe.parts ? Object.keys(recipe.parts).length : 0,
+      parts: recipe.parts,
+      deltaE: recipe.deltaE
+    });
+    
     const targetHex = `#${target.rgb.R.toString(16).padStart(2, '0')}${target.rgb.G.toString(16).padStart(2, '0')}${target.rgb.B.toString(16).padStart(2, '0')}`.toUpperCase();
     const predictedKg = calculateBoM(target.areaPct, thicknessMm, densityKgM3, wastagePct);
     
@@ -166,6 +178,23 @@ export async function GET(context: any) {
     const results = JSON.parse(resultsStr!);
     const recipes: Record<string, Recipe[]> = results.recipes;
     
+    // Debug: Log the stored recipe structure
+    console.log('Export API - Retrieved recipes structure:');
+    for (const [targetId, targetRecipes] of Object.entries(recipes)) {
+      console.log(`[${targetId}] Has ${targetRecipes.length} recipes:`);
+      targetRecipes.forEach((recipe, index) => {
+        console.log(`  Recipe ${index + 1}:`, {
+          kind: recipe.kind,
+          weightsCount: Object.keys(recipe.weights).length,
+          weights: recipe.weights,
+          hasPartsData: !!recipe.parts,
+          partsCount: recipe.parts ? Object.keys(recipe.parts).length : 0,
+          parts: recipe.parts,
+          total: recipe.total
+        });
+      });
+    }
+    
     if (format === 'csv') {
       const rows = ['Target Colour,Recipe,Area %,ΔE2000,Predicted kg'];
       
@@ -175,6 +204,17 @@ export async function GET(context: any) {
         
         // Use the first (best) recipe for each target
         const recipe = targetRecipes[0];
+        
+        // Debug: Log which recipe is selected for export
+        console.log(`[${targetId}] CSV Export - Selected recipe:`, {
+          index: 0,
+          weightsCount: Object.keys(recipe.weights).length,
+          weights: recipe.weights,
+          hasPartsData: !!recipe.parts,
+          partsCount: recipe.parts ? Object.keys(recipe.parts).length : 0,
+          parts: recipe.parts,
+          deltaE: recipe.deltaE
+        });
         const targetHex = `#${target.rgb.R.toString(16).padStart(2, '0')}${target.rgb.G.toString(16).padStart(2, '0')}${target.rgb.B.toString(16).padStart(2, '0')}`.toUpperCase();
         const recipeText = formatRecipe(recipe.weights, recipe.parts);
         const predictedKg = calculateBoM(target.areaPct, thicknessMm, densityKgM3, wastagePct);
@@ -215,6 +255,18 @@ export async function GET(context: any) {
         if (!target || targetRecipes.length === 0) continue;
         
         const recipe = targetRecipes[0];
+        
+        // Debug: Log which recipe is selected for JSON export
+        console.log(`[${targetId}] JSON Export - Selected recipe:`, {
+          index: 0,
+          weightsCount: Object.keys(recipe.weights).length,
+          weights: recipe.weights,
+          hasPartsData: !!recipe.parts,
+          partsCount: recipe.parts ? Object.keys(recipe.parts).length : 0,
+          parts: recipe.parts,
+          deltaE: recipe.deltaE
+        });
+        
         const targetHex = `#${target.rgb.R.toString(16).padStart(2, '0')}${target.rgb.G.toString(16).padStart(2, '0')}${target.rgb.B.toString(16).padStart(2, '0')}`.toUpperCase();
         const predictedKg = calculateBoM(target.areaPct, thicknessMm, densityKgM3, wastagePct);
         
