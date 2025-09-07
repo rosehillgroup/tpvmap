@@ -78,7 +78,9 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
                 </tr>
               </thead>
               <tbody>
-                {targetRecipes.map((recipe, index) => {
+                {[...targetRecipes]
+                  .sort((a, b) => a.deltaE - b.deltaE)
+                  .map((recipe, index) => {
                   const recipeHex = rgbToHex(recipe.rgb);
                   const isPinned = pinnedIndex === index;
                   
@@ -141,7 +143,7 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
   .recipes-table {
     display: flex;
     flex-direction: column;
-    gap: 3rem;
+    gap: 4rem;
   }
 
   .target-section {
@@ -204,13 +206,17 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
   }
 
   .target-section td {
-    padding: 1.5rem 0.75rem;
+    padding: 1.75rem 1rem;
     border-bottom: 1px solid var(--color-border-light);
     vertical-align: middle;
   }
 
+  .target-section tr {
+    transition: background-color 0.2s ease;
+  }
+
   .target-section tr:hover {
-    background: rgba(255, 107, 53, 0.03);
+    background: rgba(255, 107, 53, 0.05);
   }
 
   .pin-btn {
@@ -232,6 +238,10 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
   tr.pinned {
     background: rgba(255, 107, 53, 0.08);
     border-left: 4px solid var(--color-accent);
+  }
+
+  tr.pinned + tr:not(.pinned) {
+    border-top: 2px solid var(--color-border);
   }
 
   tr.pinned .pin-btn {
@@ -343,7 +353,7 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
 
     .target-section th,
     .target-section td {
-      padding: 1rem 0.5rem;
+      padding: 1.25rem 0.75rem;
     }
 
     .recipe-text {

@@ -132,7 +132,7 @@ export default function BlendPresets({ constraints, onChange, onAdvancedMode }: 
   .preset-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
+    gap: 1.5rem;
     margin-bottom: 2rem;
   }
 
