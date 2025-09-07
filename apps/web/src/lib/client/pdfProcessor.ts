@@ -1,12 +1,7 @@
 // Client-side PDF processing utilities
 // Uses browser's native canvas - no server dependencies
 
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configure PDF.js worker for browser
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
-}
+// PDF.js will be loaded dynamically in each function to avoid server-side imports
 
 export interface PDFThumbnailResult {
   thumbnailBlob: Blob;
@@ -32,6 +27,14 @@ export async function generatePDFThumbnail(
   const startTime = Date.now();
   
   try {
+    // Dynamic import to avoid server-side loading
+    const pdfjsLib = await import('pdfjs-dist');
+    
+    // Configure worker if not already configured
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+    }
+    
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     
@@ -98,6 +101,14 @@ export async function extractPDFRasterSamples(
   maxPixels: number = 200000
 ): Promise<PDFRasterSample[]> {
   try {
+    // Dynamic import to avoid server-side loading
+    const pdfjsLib = await import('pdfjs-dist');
+    
+    // Configure worker if not already configured
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+    }
+    
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     

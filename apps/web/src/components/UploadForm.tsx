@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
-import { generatePDFThumbnail, uploadPDFThumbnail } from '../lib/client/pdfProcessor';
 
 interface UploadResponse {
   jobId: string;
@@ -125,6 +124,9 @@ export default function UploadForm() {
         setProgress({ stage: 'processing', progress: 25, message: 'Generating PDF thumbnail...' });
         
         try {
+          // Dynamic import to avoid server-side loading
+          const { generatePDFThumbnail, uploadPDFThumbnail } = await import('../lib/client/pdfProcessor');
+          
           const thumbnailResult = await generatePDFThumbnail(file);
           if (thumbnailResult) {
             console.info('PDF thumbnail generated:', {
