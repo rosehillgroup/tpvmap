@@ -45,6 +45,8 @@ export default function ResultsView({ jobId }: Props) {
   const [loading, setLoading] = useState(true);
   const [palette, setPalette] = useState<PaletteEntry[]>([]);
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
+  const [downloadLoading, setDownloadLoading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [constraints, setConstraints] = useState<SolverConstraints>({
     maxComponents: 3,
     stepPct: 0.02,
