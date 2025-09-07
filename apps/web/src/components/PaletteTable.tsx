@@ -96,31 +96,95 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
 <style>{`
   .palette-table {
     overflow-x: auto;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-light);
   }
 
   .palette-table table {
-    min-width: 600px;
+    min-width: 700px;
+    border-collapse: collapse;
+  }
+
+  .palette-table th {
+    background: var(--color-background);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--color-primary);
+    padding: 1rem 0.75rem;
+    text-align: left;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .palette-table td {
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid var(--color-border-light);
+    vertical-align: middle;
+  }
+
+  .palette-table tr:hover {
+    background: rgba(255, 107, 53, 0.03);
   }
 
   .colour-cell {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1rem;
   }
 
   .colour-cell .swatch {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
     flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+    border: 2px solid var(--color-border-light);
   }
 
   .palette-table code {
     font-size: 0.875rem;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
     background: var(--color-background);
-    padding: 0.125rem 0.375rem;
-    border-radius: 3px;
+    padding: 0.375rem 0.625rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-light);
+    color: var(--color-text);
+    font-weight: 500;
   }
 
   .palette-table input[type="checkbox"] {
-    width: auto;
+    width: 18px;
+    height: 18px;
     margin: 0;
+    cursor: pointer;
+    accent-color: var(--color-accent);
+  }
+
+  .palette-table input[type="checkbox"]:checked {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+
+  @media (max-width: 768px) {
+    .palette-table th,
+    .palette-table td {
+      padding: 0.75rem 0.5rem;
+    }
+
+    .colour-cell {
+      gap: 0.75rem;
+    }
+
+    .colour-cell .swatch {
+      width: 40px;
+      height: 40px;
+    }
+
+    .palette-table code {
+      font-size: 0.8125rem;
+      padding: 0.25rem 0.5rem;
+    }
   }
 `}</style>

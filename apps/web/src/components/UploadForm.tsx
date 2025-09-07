@@ -212,18 +212,20 @@ export default function UploadForm() {
     border-radius: var(--radius);
     padding: 3rem 2rem;
     text-align: center;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     background: var(--color-surface);
   }
 
   .drop-zone.active {
-    border-color: var(--color-primary);
-    background: rgba(27, 79, 156, 0.05);
+    border-color: var(--color-accent);
+    background: rgba(255, 107, 53, 0.05);
+    transform: scale(1.02);
   }
 
   .drop-zone.has-file {
     border-style: solid;
-    border-color: var(--color-secondary);
+    border-color: var(--color-accent);
+    background: rgba(255, 107, 53, 0.03);
   }
 
   .drop-zone input {
@@ -250,8 +252,9 @@ export default function UploadForm() {
   }
 
   .drop-zone .browse {
-    color: var(--color-primary);
+    color: var(--color-accent);
     text-decoration: underline;
+    font-weight: 500;
   }
 
   .drop-zone .formats {
@@ -265,7 +268,7 @@ export default function UploadForm() {
   }
 
   .file-info svg {
-    color: var(--color-secondary);
+    color: var(--color-accent);
     opacity: 1;
   }
 
@@ -309,7 +312,7 @@ export default function UploadForm() {
 
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+    background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
     transition: width 0.5s ease-in-out;
   }
 
@@ -323,7 +326,7 @@ export default function UploadForm() {
   .progress-stage {
     text-transform: capitalize;
     font-weight: 500;
-    color: var(--color-primary);
+    color: var(--color-accent);
   }
 
   .progress-message {

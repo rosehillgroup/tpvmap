@@ -145,31 +145,72 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
   }
 
   .target-section {
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--color-border-light);
     border-radius: var(--radius);
     overflow: hidden;
+    box-shadow: var(--shadow-sm);
   }
 
   .target-header {
-    background: var(--color-background);
-    padding: 1rem;
-    border-bottom: 1px solid var(--color-border);
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    padding: 1.5rem;
+    color: white;
   }
 
   .target-info {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.25rem;
+  }
+
+  .target-info .swatch {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+    flex-shrink: 0;
   }
 
   .target-info h3 {
     margin: 0;
-    font-size: 1.125rem;
+    font-size: 1.25rem;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: white;
   }
 
   .target-info p {
     margin: 0;
     font-size: 0.875rem;
+    color: rgba(255,255,255,0.9);
+  }
+
+  .target-section table {
+    border-collapse: collapse;
+    background: var(--color-surface);
+  }
+
+  .target-section th {
+    background: var(--color-background);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--color-primary);
+    padding: 1rem 0.75rem;
+    text-align: left;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    border-bottom: 2px solid var(--color-border);
+  }
+
+  .target-section td {
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid var(--color-border-light);
+    vertical-align: middle;
+  }
+
+  .target-section tr:hover {
+    background: rgba(255, 107, 53, 0.03);
   }
 
   .pin-btn {
@@ -177,63 +218,155 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
     border: none;
     cursor: pointer;
     font-size: 1.25rem;
-    padding: 0.25rem;
+    padding: 0.375rem;
+    border-radius: var(--radius-sm);
     opacity: 0.5;
-    transition: opacity 0.2s;
+    transition: all 0.2s ease;
   }
 
   .pin-btn:hover {
     opacity: 1;
+    background: var(--color-background);
   }
 
   tr.pinned {
-    background: rgba(75, 170, 52, 0.1);
+    background: rgba(255, 107, 53, 0.08);
+    border-left: 4px solid var(--color-accent);
+  }
+
+  tr.pinned .pin-btn {
+    opacity: 1;
+    color: var(--color-accent);
   }
 
   .recipe-text {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.375rem;
+    min-width: 200px;
+  }
+
+  .recipe-text strong {
+    font-family: 'SF Mono', 'Monaco', monospace;
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    background: var(--color-background);
+    padding: 0.375rem 0.625rem;
+    border-radius: var(--radius-sm);
+    display: inline-block;
   }
 
   .recipe-text .approx {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--color-text-light);
+    font-family: 'SF Mono', 'Monaco', monospace;
   }
 
   .components {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.375rem;
     flex-wrap: wrap;
-    margin-top: 0.25rem;
+    margin-top: 0.5rem;
   }
 
   .component {
     font-size: 0.75rem;
     background: var(--color-background);
-    padding: 0.125rem 0.375rem;
-    border-radius: 3px;
+    color: var(--color-text-light);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-light);
   }
 
   .preview-cell {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    min-width: 120px;
+  }
+
+  .preview-cell .swatch {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+    border: 2px solid var(--color-border-light);
+    flex-shrink: 0;
+  }
+
+  .preview-cell span {
+    font-family: 'SF Mono', 'Monaco', monospace;
+    font-size: 0.875rem;
+    font-weight: 500;
   }
 
   .delta-e {
     font-weight: 600;
+    font-size: 0.9375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--radius-sm);
+    text-align: center;
+    min-width: 60px;
   }
 
   .delta-e.excellent {
-    color: var(--color-secondary);
+    background: rgba(75, 170, 52, 0.15);
+    color: #2D7D32;
+    border: 1px solid rgba(75, 170, 52, 0.3);
   }
 
   .delta-e.good {
-    color: var(--color-accent);
+    background: rgba(255, 107, 53, 0.15);
+    color: #E65100;
+    border: 1px solid rgba(255, 107, 53, 0.3);
   }
 
   .delta-e.fair {
+    background: var(--color-background);
     color: var(--color-text);
+    border: 1px solid var(--color-border);
+  }
+
+  @media (max-width: 768px) {
+    .target-header {
+      padding: 1rem;
+    }
+
+    .target-info {
+      gap: 1rem;
+    }
+
+    .target-info .swatch {
+      width: 48px;
+      height: 48px;
+    }
+
+    .target-section th,
+    .target-section td {
+      padding: 0.75rem 0.5rem;
+    }
+
+    .recipe-text {
+      min-width: unset;
+    }
+
+    .components {
+      gap: 0.25rem;
+    }
+
+    .component {
+      font-size: 0.6875rem;
+      padding: 0.1875rem 0.375rem;
+    }
+
+    .preview-cell {
+      gap: 0.5rem;
+      min-width: unset;
+    }
+
+    .preview-cell .swatch {
+      width: 40px;
+      height: 40px;
+    }
   }
 `}</style>

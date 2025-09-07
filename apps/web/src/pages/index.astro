@@ -5,8 +5,46 @@ import UploadForm from '../components/UploadForm';
 
 <Layout title="TPV Match - Upload Design">
 	<main class="container">
-		<h1>TPV Colour Matcher</h1>
-		<p>Upload your surfacing design to find matching Rosehill TPV blends.</p>
+		<div class="hero">
+			<h1>TPV Color Matcher</h1>
+			<p>Upload your design to find matching Rosehill TPV blends with precision color analysis.</p>
+		</div>
 		<UploadForm client:load />
 	</main>
 </Layout>
+
+<style>
+	.hero {
+		text-align: center;
+		margin-bottom: 3rem;
+		padding: 2rem 0;
+	}
+	
+	.hero h1 {
+		font-size: 3rem;
+		margin-bottom: 1rem;
+		background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+		-webkit-background-clip: text;
+		background-clip: text;
+		-webkit-text-fill-color: transparent;
+		color: var(--color-primary);
+	}
+	
+	.hero p {
+		font-size: 1.25rem;
+		max-width: 600px;
+		margin: 0 auto;
+		color: var(--color-text-light);
+		line-height: 1.6;
+	}
+
+	@media (max-width: 768px) {
+		.hero h1 {
+			font-size: 2.25rem;
+		}
+		
+		.hero p {
+			font-size: 1.125rem;
+		}
+	}
+</style>
