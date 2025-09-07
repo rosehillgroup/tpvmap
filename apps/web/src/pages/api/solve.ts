@@ -1,5 +1,5 @@
 import { getStore } from '@netlify/blobs';
-import { BlendSolver } from '../../lib/solver/solver';
+import { SmartBlendSolver, SmartSolverConstraints, SmartRecipe } from '../../lib/colour/smartSolver';
 import tpvColours from '../../data/rosehill_tpv_21_colours.json';
 import type { TPVColour } from '../../lib/colour/blend';
 
@@ -18,6 +18,7 @@ interface SolveRequest {
       minPer: number;
     };
     forceComponents?: string[];
+    preferAnchor?: boolean;
   };
 }
 
@@ -57,11 +58,25 @@ export async function POST(context: any) {
     // Handle both old simple format and new structured format
     const palette: PaletteEntry[] = paletteData.palette || paletteData;
     
-    // Initialize the blend solver
-    const solver = new BlendSolver(tpvColours as TPVColour[], constraints);
+    // Map old constraints format to new smart solver format
+    const smartConstraints: SmartSolverConstraints = {
+      maxComponents: Math.min(Math.max(constraints.maxComponents, 1), 3) as 1 | 2 | 3,
+      stepPct: constraints.stepPct || 0.02,
+      minPct: constraints.minPct || 0.10,
+      mode: constraints.mode || 'parts',
+      parts: constraints.mode === 'parts' && constraints.parts ? {
+        enabled: true,
+        total: constraints.parts.maxTotal || 12,
+        minPer: constraints.parts.minPer || 1
+      } : undefined,
+      preferAnchor: constraints.preferAnchor || false
+    };
+
+    // Initialize the smart blend solver
+    const solver = new SmartBlendSolver(tpvColours as TPVColour[], smartConstraints);
     
     // Solve for each target colour
-    const recipes: Record<string, any[]> = {};
+    const recipes: Record<string, SmartRecipe[]> = {};
     
     for (const targetId of targetIds) {
       const target = palette.find(p => p.id === targetId);
@@ -76,9 +91,22 @@ export async function POST(context: any) {
         b: target.lab.b
       };
       
-      // Solve for this target
-      const targetRecipes = solver.solve(targetLab);
-      recipes[targetId] = targetRecipes;
+      // Solve for this target with smart solver
+      const smartRecipes = solver.solve(targetLab, 5);
+      
+      // Convert SmartRecipe format to legacy Recipe format for compatibility
+      const legacyRecipes = smartRecipes.map(recipe => ({
+        kind: constraints.mode,
+        weights: recipe.weights,
+        parts: recipe.parts,
+        total: recipe.total,
+        rgb: recipe.rgb,
+        lab: recipe.lab,
+        deltaE: recipe.deltaE,
+        note: recipe.reasoning || recipe.note
+      }));
+      
+      recipes[targetId] = legacyRecipes;
     }
     
     // Cache the results
