@@ -166,88 +166,106 @@ export class SmartBlendSolver {
       results.push(...threeWayResults);
     }
     
+    // Auto-expansion fallback BEFORE deduplication if needed
+    if (results.length < maxResults * 3 && this.constraints.maxComponents < 3) {
+      const expandedResults = this.autoExpandSearch(targetLab, maxResults * 2);
+      results.push(...expandedResults);
+    }
+    
+    // Apply parts conversion BEFORE deduplication to ensure proper canonical keys
+    const partsConvertedResults = results.map(recipe => this.convertToPartsIfNeeded(recipe, targetLab));
+    
     // Convert to DedupeRecipe format for enhanced deduplication
-    const dedupeRecipes = results.map(r => this.toDedupeRecipe(r));
+    const dedupeRecipes = partsConvertedResults.map(r => this.toDedupeRecipe(r));
     
     // Apply comprehensive deduplication
     const uniqueRecipes = deduplicateRecipes(dedupeRecipes);
     
     // Apply MMR selection for diversity
-    let diverseRecipes = mmrSelect(uniqueRecipes, maxResults * 2, 0.75);
+    const diverseRecipes = mmrSelect(uniqueRecipes, maxResults * 2, 0.75);
     
-    // Auto-expansion fallback if we have fewer unique results than requested
-    if (diverseRecipes.length < maxResults && this.constraints.maxComponents < 3) {
-      const expandedResults = this.autoExpandSearch(targetLab, maxResults - diverseRecipes.length);
-      
-      // Convert expanded results to DedupeRecipe format
-      const expandedDedupeRecipes = expandedResults.map(r => this.toDedupeRecipe(r));
-      
-      // Merge and deduplicate again
-      const allRecipes = [...diverseRecipes, ...expandedDedupeRecipes];
-      const redeuplicated = deduplicateRecipes(allRecipes);
-      diverseRecipes = mmrSelect(redeuplicated, maxResults * 2, 0.75);
-    }
-    
-    // Convert back to SmartRecipe format and apply parts conversion
+    // Convert back to SmartRecipe format
     const finalResults = diverseRecipes.slice(0, maxResults).map(dedupeRecipe => {
-      const recipe = this.fromDedupeRecipe(dedupeRecipe);
-      return this.convertToPartsIfNeeded(recipe, targetLab);
+      return this.fromDedupeRecipe(dedupeRecipe);
     });
     
     return finalResults;
   }
 
   /**
-   * Auto-expand search constraints when results are limited
+   * Auto-expand search constraints when results are limited (simplified approach)
    */
   private autoExpandSearch(targetLab: Lab, neededCount: number): SmartRecipe[] {
     const expandedResults: SmartRecipe[] = [];
     
-    // Strategy 1: Allow one extra component if possible
+    // Strategy 1: Generate additional 3-way blends if we were limited to 2-way
     if (this.constraints.maxComponents < 3) {
-      const expandedConstraints = {
-        ...this.constraints,
-        maxComponents: (this.constraints.maxComponents + 1) as 1 | 2 | 3
-      };
+      // Temporarily allow 3-way blends for expansion
+      const savedMaxComponents = this.constraints.maxComponents;
+      (this.constraints as any).maxComponents = 3;
       
-      const expandedSolver = new SmartBlendSolver(this.colours, expandedConstraints);
-      const expandedCandidates = expandedSolver.solve(targetLab, neededCount * 2);
-      expandedResults.push(...expandedCandidates.slice(0, Math.ceil(neededCount / 2)));
+      const threeWayResults = this.solveThreeWayBlendsWithHueDiversity(targetLab);
+      expandedResults.push(...threeWayResults.slice(0, Math.ceil(neededCount / 2)));
+      
+      // Restore original constraint
+      (this.constraints as any).maxComponents = savedMaxComponents;
     }
     
-    // Strategy 2: Increase parts total if in parts mode
-    if (this.constraints.mode === 'parts' && this.constraints.parts?.total) {
-      const currentTotal = this.constraints.parts.total;
-      const newTotals = [currentTotal + 3, currentTotal + 6].filter(t => t <= 20);
-      
-      for (const newTotal of newTotals) {
-        const expandedConstraints = {
-          ...this.constraints,
-          parts: {
-            ...this.constraints.parts,
-            total: newTotal
-          }
-        };
-        
-        const expandedSolver = new SmartBlendSolver(this.colours, expandedConstraints);
-        const expandedCandidates = expandedSolver.solve(targetLab, neededCount);
-        expandedResults.push(...expandedCandidates.slice(0, Math.floor(neededCount / 3)));
-        
-        if (expandedResults.length >= neededCount) break;
-      }
-    }
-    
-    // Strategy 3: Relax minimum percentage constraint slightly
+    // Strategy 2: Generate more two-way blends with relaxed constraints
     if (expandedResults.length < neededCount) {
-      const relaxedMinPct = Math.max(0.05, this.constraints.minPct - 0.05);
-      const expandedConstraints = {
-        ...this.constraints,
-        minPct: relaxedMinPct
-      };
+      // Temporarily relax minimum percentage constraint
+      const savedMinPct = this.constraints.minPct;
+      const relaxedMinPct = Math.max(0.05, this.constraints.minPct - 0.03);
+      (this.constraints as any).minPct = relaxedMinPct;
       
-      const expandedSolver = new SmartBlendSolver(this.colours, expandedConstraints);
-      const expandedCandidates = expandedSolver.solve(targetLab, neededCount);
-      expandedResults.push(...expandedCandidates.slice(0, neededCount - expandedResults.length));
+      // Re-score existing two-way cache with relaxed constraints
+      for (const blend of this.twoWayCache.slice(0, neededCount * 2)) {
+        if (blend.p >= relaxedMinPct && (1 - blend.p) >= relaxedMinPct) {
+          // Recalculate with relaxed constraints
+          blend.deltaE = deltaE2000(targetLab, blend.lab);
+          
+          const c1 = this.enhancedColours[blend.i];
+          const c2 = this.enhancedColours[blend.j];
+          
+          const penalty = evaluateBlendPenalties(
+            [
+              { lab: { L: c1.L, a: c1.a, b: c1.b }, weight: blend.p },
+              { lab: { L: c2.L, a: c2.a, b: c2.b }, weight: 1 - blend.p }
+            ],
+            targetLab,
+            this.singleDistances
+          );
+          
+          blend.adjustedDeltaE = blend.deltaE + penalty;
+          
+          const dominant = blend.p >= 0.6 ? c1 : (blend.p <= 0.4 ? c2 : null);
+          const reasoning = dominant 
+            ? `Relaxed ${dominant.name} with ${dominant === c1 ? c2.name : c1.name} adjustment`
+            : `Relaxed balanced mix of ${c1.name} and ${c2.name}`;
+          
+          expandedResults.push({
+            components: [
+              { code: c1.code, pct: blend.p },
+              { code: c2.code, pct: 1 - blend.p }
+            ],
+            weights: { [c1.code]: blend.p, [c2.code]: 1 - blend.p },
+            lab: blend.lab,
+            rgb: linearRGBToSRGB(mixLinearRGB([
+              { color: c1.linearRGB, weight: blend.p },
+              { color: c2.linearRGB, weight: 1 - blend.p }
+            ])),
+            deltaE: blend.adjustedDeltaE,
+            baseDeltaE: blend.deltaE,
+            note: '2-component expanded blend',
+            reasoning
+          });
+          
+          if (expandedResults.length >= neededCount) break;
+        }
+      }
+      
+      // Restore original constraint
+      (this.constraints as any).minPct = savedMinPct;
     }
     
     return expandedResults.slice(0, neededCount);

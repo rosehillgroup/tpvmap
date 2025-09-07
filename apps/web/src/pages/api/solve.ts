@@ -1,5 +1,6 @@
 import { getStore } from '@netlify/blobs';
 import { SmartBlendSolver, SmartSolverConstraints, SmartRecipe } from '../../lib/colour/smartSolver';
+import { canonicalParts, canonicalPerc, deduplicateRecipes, mmrSelect, DedupeRecipe } from '../../lib/colour/smartUtils';
 import tpvColours from '../../data/rosehill_tpv_21_colours.json';
 import type { TPVColour } from '../../lib/colour/blend';
 
@@ -91,48 +92,108 @@ export async function POST(context: any) {
         b: target.lab.b
       };
       
-      // Solve for this target with smart solver and complexity bucketing
+      // Solve for this target with smart solver
       const allSmartRecipes = solver.solve(targetLab, 15); // Get more candidates
+      console.log(`[${targetId}] Generated ${allSmartRecipes.length} initial recipes`);
       
-      // Bucket by complexity for diversity
-      const singleComponent = allSmartRecipes.filter(r => r.components.length === 1);
-      const twoComponent = allSmartRecipes.filter(r => r.components.length === 2);
-      const threeComponent = allSmartRecipes.filter(r => r.components.length === 3);
+      // Convert to DedupeRecipe format for final safety deduplication at API level
+      const apiDedupeRecipes = allSmartRecipes.map(recipe => ({
+        components: recipe.components,
+        mode: constraints.mode as 'percent' | 'parts',
+        parts: recipe.parts && recipe.total ? {
+          codes: Object.keys(recipe.parts),
+          parts: Object.values(recipe.parts),
+          total: recipe.total
+        } : undefined,
+        lab: recipe.lab,
+        deltaE: recipe.deltaE,
+        weights: recipe.weights
+      }));
+      
+      // Apply final safety deduplication
+      const safetyDeduped = deduplicateRecipes(apiDedupeRecipes);
+      console.log(`[${targetId}] After safety deduplication: ${safetyDeduped.length} recipes`);
+      
+      // Apply complexity-based bucketing with canonical keys for proper identification
+      const bucketedRecipes = new Map<string, typeof safetyDeduped[0]>();
+      const singleComponent: typeof safetyDeduped = [];
+      const twoComponent: typeof safetyDeduped = [];
+      const threeComponent: typeof safetyDeduped = [];
+      
+      for (const recipe of safetyDeduped) {
+        // Generate canonical key for this recipe
+        const canonicalKey = recipe.mode === 'parts' && recipe.parts
+          ? canonicalParts(recipe.parts.parts, recipe.parts.codes).key
+          : canonicalPerc(recipe.components).key;
+        
+        // Only add if we haven't seen this canonical recipe before  
+        if (!bucketedRecipes.has(canonicalKey)) {
+          bucketedRecipes.set(canonicalKey, recipe);
+          
+          // Bucket by complexity
+          const componentCount = recipe.mode === 'parts' && recipe.parts 
+            ? recipe.parts.codes.length 
+            : recipe.components.length;
+            
+          if (componentCount === 1) {
+            singleComponent.push(recipe);
+          } else if (componentCount === 2) {
+            twoComponent.push(recipe);
+          } else if (componentCount === 3) {
+            threeComponent.push(recipe);
+          }
+        }
+      }
       
       // Select balanced representation from each bucket
       const finalSelection = [
         ...singleComponent.slice(0, 1),  // Top 1 single component
-        ...twoComponent.slice(0, 3),     // Top 3 two-component
+        ...twoComponent.slice(0, 3),     // Top 3 two-component  
         ...threeComponent.slice(0, 1)    // Top 1 three-component
       ];
+      console.log(`[${targetId}] Bucketed: ${singleComponent.length} single, ${twoComponent.length} two-way, ${threeComponent.length} three-way`);
       
       // Fill remaining slots with best overall candidates if needed
-      const usedIndices = new Set();
-      finalSelection.forEach((recipe, idx) => {
-        const originalIdx = allSmartRecipes.findIndex(r => 
-          r.components.length === recipe.components.length && 
-          r.deltaE === recipe.deltaE
-        );
-        if (originalIdx !== -1) usedIndices.add(originalIdx);
-      });
+      const usedKeys = new Set(finalSelection.map(recipe => 
+        recipe.mode === 'parts' && recipe.parts
+          ? canonicalParts(recipe.parts.parts, recipe.parts.codes).key
+          : canonicalPerc(recipe.components).key
+      ));
       
       const remainingSlots = 5 - finalSelection.length;
       if (remainingSlots > 0) {
-        const unused = allSmartRecipes.filter((_, idx) => !usedIndices.has(idx));
+        const unused = safetyDeduped.filter(recipe => {
+          const key = recipe.mode === 'parts' && recipe.parts
+            ? canonicalParts(recipe.parts.parts, recipe.parts.codes).key
+            : canonicalPerc(recipe.components).key;
+          return !usedKeys.has(key);
+        });
         finalSelection.push(...unused.slice(0, remainingSlots));
       }
       
-      // Convert SmartRecipe format to legacy Recipe format for compatibility  
+      // Convert DedupeRecipe format back to legacy Recipe format for compatibility
+      console.log(`[${targetId}] Final selection: ${finalSelection.length} recipes`);
+      
+      // Log canonical keys for debugging
+      const canonicalKeys = finalSelection.map(recipe => 
+        recipe.mode === 'parts' && recipe.parts
+          ? canonicalParts(recipe.parts.parts, recipe.parts.codes).key
+          : canonicalPerc(recipe.components).key
+      );
+      console.log(`[${targetId}] Canonical keys:`, canonicalKeys);
+      
       const legacyRecipes = finalSelection.slice(0, 5).map(recipe => ({
         kind: constraints.mode as 'percent' | 'parts',
         weights: recipe.weights,
-        parts: recipe.parts,
-        total: recipe.total,
-        rgb: recipe.rgb,
+        parts: recipe.parts ? recipe.parts.codes.reduce((obj, code, i) => {
+          obj[code] = recipe.parts!.parts[i];
+          return obj;
+        }, {} as Record<string, number>) : undefined,
+        total: recipe.parts?.total,
+        rgb: allSmartRecipes.find(sr => sr.deltaE === recipe.deltaE)?.rgb || { R: 128, G: 128, B: 128 },
         lab: recipe.lab,
         deltaE: recipe.deltaE,
-        note: recipe.reasoning || recipe.note || 
-               (finalSelection.length < 5 ? `Showing ${finalSelection.length} unique recipes` : undefined)
+        note: finalSelection.length < 5 ? `Showing ${finalSelection.length} unique recipes` : undefined
       }));
       
       recipes[targetId] = legacyRecipes;
