@@ -33,11 +33,11 @@ export async function generatePDFThumbnail(
     const pdfjsLib = await import('pdfjs-dist');
     console.info('PDF.js loaded, version:', pdfjsLib.version);
     
-    // Configure PDF.js worker with a valid URL from jsDelivr CDN
+    // Configure PDF.js worker with UNPKG CDN (more reliable than jsDelivr for this package)
     if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
       const version = pdfjsLib.version || '5.4.149';
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.js`;
-      console.info('PDF.js worker configured with jsDelivr CDN:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
+      console.info('PDF.js worker configured with UNPKG CDN:', pdfjsLib.GlobalWorkerOptions.workerSrc);
     }
     
     const arrayBuffer = await file.arrayBuffer();
@@ -113,10 +113,10 @@ export async function extractPDFRasterSamples(
     // Dynamic import to avoid server-side loading
     const pdfjsLib = await import('pdfjs-dist');
     
-    // Configure PDF.js worker with jsDelivr CDN
+    // Configure PDF.js worker with UNPKG CDN
     if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
       const version = pdfjsLib.version || '5.4.149';
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${version}/build/pdf.worker.min.js`;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
     }
     
     const arrayBuffer = await file.arrayBuffer();
