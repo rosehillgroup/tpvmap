@@ -67,7 +67,6 @@ function generatePDFHTML(recipes: Record<string, Recipe[]>, palette: PaletteEntr
     });
     
     const targetHex = `#${target.rgb.R.toString(16).padStart(2, '0')}${target.rgb.G.toString(16).padStart(2, '0')}${target.rgb.B.toString(16).padStart(2, '0')}`.toUpperCase();
-    const predictedKg = calculateBoM(target.areaPct, thicknessMm, densityKgM3, wastagePct);
     
     return `
       <div style="margin-bottom: 2rem; padding: 1rem; border: 1px solid #ddd; border-radius: 8px;">
