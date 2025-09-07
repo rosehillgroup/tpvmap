@@ -134,128 +134,102 @@ export default function ResultsView({ jobId }: Props) {
         </button>
       </div>
 
-      <div className="layout-container">
-        <aside className="sidebar">
-          <div className="sidebar-content">
-            <div className="step-nav">
-              <div className={`step-nav-item ${palette.length > 0 ? 'active' : 'pending'}`}>
-                <div className="step-number">1</div>
-                <div className="step-info">
-                  <h3>Extract Colours</h3>
-                  <span className="step-status">{palette.length} found</span>
-                </div>
-              </div>
-              
-              <div className={`step-nav-item ${selectedTargets.length > 0 ? 'active' : 'disabled'}`}>
-                <div className="step-number">2</div>
-                <div className="step-info">
-                  <h3>Blend Settings</h3>
-                  <span className="step-status">{selectedTargets.length} selected</span>
-                </div>
-              </div>
-              
-              <div className={`step-nav-item ${Object.keys(recipes).length > 0 ? 'active' : 'disabled'}`}>
-                <div className="step-number">3</div>
-                <div className="step-info">
-                  <h3>Your Blends</h3>
-                  <span className="step-status">{Object.keys(recipes).length} recipes</span>
-                </div>
-              </div>
-            </div>
+      <div className="workflow">
+        <div className="workflow-step active">
+          <div className="step-header">
+            <div className="step-number">1</div>
+            <h2>Extracted Colours</h2>
+            <span className="step-count">{palette.length} found</span>
+          </div>
+          <div className="card">
+            <PaletteTable 
+              palette={palette}
+              selectedTargets={selectedTargets}
+              onSelectionChange={setSelectedTargets}
+            />
+          </div>
+        </div>
 
-            {selectedTargets.length > 0 && (
-              <div className="settings-panel">
-                <h4>Blend Configuration</h4>
-                {!showAdvanced ? (
-                  <BlendPresets
-                    constraints={constraints}
-                    onChange={setConstraints}
-                    onAdvancedMode={() => setShowAdvanced(true)}
-                  />
-                ) : (
-                  <div>
-                    <div className="advanced-header">
-                      <h5>Advanced Settings</h5>
-                      <button 
-                        className="btn-link"
-                        onClick={() => setShowAdvanced(false)}
-                      >
-                        ← Back to presets
-                      </button>
-                    </div>
-                    <ConstraintsPanel 
-                      constraints={constraints}
-                      onChange={setConstraints}
-                      tpvColours={tpvColours as TPVColour[]}
-                    />
-                  </div>
-                )}
-                
-                <button 
-                  className="btn btn-primary generate-btn"
-                  onClick={handleSolve}
-                  disabled={selectedTargets.length === 0 || solving}
-                >
-                  {solving ? (
-                    <>
-                      <span className="loading"></span>
-                      <span>Calculating blends...</span>
-                    </>
-                  ) : (
-                    `Generate ${selectedTargets.length} Blend${selectedTargets.length !== 1 ? 's' : ''}`
-                  )}
-                </button>
+        <div className={`workflow-step ${selectedTargets.length > 0 ? 'active' : 'disabled'}`}>
+          <div className="step-header">
+            <div className="step-number">2</div>
+            <h2>Blend Settings</h2>
+            <span className="step-count">{selectedTargets.length} selected</span>
+          </div>
+          <div className="card">
+            {!showAdvanced ? (
+              <BlendPresets
+                constraints={constraints}
+                onChange={setConstraints}
+                onAdvancedMode={() => setShowAdvanced(true)}
+              />
+            ) : (
+              <div>
+                <div className="advanced-header">
+                  <h3>Advanced Settings</h3>
+                  <button 
+                    className="btn-link"
+                    onClick={() => setShowAdvanced(false)}
+                  >
+                    ← Back to presets
+                  </button>
+                </div>
+                <ConstraintsPanel 
+                  constraints={constraints}
+                  onChange={setConstraints}
+                  tpvColours={tpvColours as TPVColour[]}
+                />
               </div>
             )}
+            
+            <button 
+              className="btn btn-primary generate-btn"
+              onClick={handleSolve}
+              disabled={selectedTargets.length === 0 || solving}
+            >
+              {solving ? (
+                <>
+                  <span className="loading"></span>
+                  <span>Calculating blends...</span>
+                </>
+              ) : (
+                `Generate ${selectedTargets.length} Blend${selectedTargets.length !== 1 ? 's' : ''}`
+              )}
+            </button>
           </div>
-        </aside>
+        </div>
 
-        <main className="main-content">
-          <section className="content-section">
-            <div className="section-header">
-              <h2>Extracted Colours</h2>
-              <div className="section-badge">{palette.length} colours found</div>
+        {Object.keys(recipes).length > 0 && (
+          <div className="workflow-step active">
+            <div className="step-header">
+              <div className="step-number">3</div>
+              <h2>Your Blends</h2>
+              <span className="step-count">{Object.keys(recipes).length} recipes</span>
             </div>
             <div className="card">
-              <PaletteTable 
+              <RecipesTable 
+                recipes={recipes}
                 palette={palette}
-                selectedTargets={selectedTargets}
-                onSelectionChange={setSelectedTargets}
+                tpvColours={tpvColours as TPVColour[]}
+                mode={constraints.mode}
               />
-            </div>
-          </section>
-
-          {Object.keys(recipes).length > 0 && (
-            <section className="content-section">
-              <div className="section-header">
-                <h2>Your Blend Recipes</h2>
-                <div className="section-badge">{Object.keys(recipes).length} recipes generated</div>
-              </div>
-              <div className="card">
-                <RecipesTable 
-                  recipes={recipes}
-                  palette={palette}
-                  tpvColours={tpvColours as TPVColour[]}
-                  mode={constraints.mode}
-                />
-                <div className="export-section">
-                  <h4>Download Results</h4>
-                  <div className="export-buttons">
-                    <button className="btn btn-secondary" onClick={() => handleExport('csv')}>
-                      📊 Spreadsheet
-                    </button>
-                    <button className="btn btn-secondary" onClick={() => handleExport('json')}>
-                      🔧 Data File
-                    </button>
-                    <button className="btn btn-accent" onClick={() => handleExport('pdf')}>
-                      📄 Specification Sheet
-                    </button>
-                  </div>
+              <div className="export-section">
+                <h4>Download Results</h4>
+                <div className="export-buttons">
+                  <button className="btn btn-secondary" onClick={() => handleExport('csv')}>
+                    📊 Spreadsheet
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => handleExport('json')}>
+                    🔧 Data File
+                  </button>
+                  <button className="btn btn-accent" onClick={() => handleExport('pdf')}>
+                    📄 Specification Sheet
+                  </button>
                 </div>
               </div>
-            </section>
-          )}
-        </main>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -302,97 +276,61 @@ export default function ResultsView({ jobId }: Props) {
     margin: 0 auto 1.5rem;
   }
 
-  .layout-container {
-    display: grid;
-    grid-template-columns: 350px 1fr;
-    gap: 2rem;
-    align-items: start;
-  }
-
-  .sidebar {
-    position: sticky;
-    top: 2rem;
-  }
-
-  .sidebar-content {
-    background: var(--color-surface);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--color-border-light);
-  }
-
-  .step-nav {
-    padding: 2rem;
-    border-bottom: 1px solid var(--color-border-light);
-  }
-
-  .step-nav-item {
+  .workflow {
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-radius: var(--radius-sm);
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  .workflow-step {
+    position: relative;
     transition: all 0.3s ease;
   }
 
-  .step-nav-item.active {
-    background: rgba(255, 107, 53, 0.1);
-    border-left: 4px solid var(--color-accent);
-  }
-
-  .step-nav-item.pending {
-    background: rgba(27, 79, 156, 0.05);
-  }
-
-  .step-nav-item.disabled {
+  .workflow-step.disabled {
     opacity: 0.5;
+    pointer-events: none;
   }
 
-  .step-nav-item .step-number {
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .step-number {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: 48px;
+    height: 48px;
     background: var(--color-accent);
     color: white;
     border-radius: 50%;
     font-family: var(--font-heading);
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 1.25rem;
     flex-shrink: 0;
   }
 
-  .step-nav-item.disabled .step-number {
+  .workflow-step.disabled .step-number {
     background: var(--color-text-muted);
   }
 
-  .step-nav-item.pending .step-number {
-    background: var(--color-secondary);
-  }
-
-  .step-info h3 {
+  .step-header h2 {
     margin: 0;
-    font-size: 1rem;
-    color: var(--color-primary);
-    font-family: var(--font-heading);
+    font-size: 1.75rem;
   }
 
-  .step-status {
+  .step-count {
+    margin-left: auto;
+    background: var(--color-accent);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
     font-size: 0.875rem;
-    color: var(--color-text-light);
-  }
-
-  .settings-panel {
-    padding: 2rem;
-  }
-
-  .settings-panel h4 {
-    font-family: var(--font-heading);
-    color: var(--color-primary);
-    margin-bottom: 1.5rem;
-    font-size: 1.125rem;
+    font-weight: 500;
   }
 
   .advanced-header {
@@ -404,10 +342,8 @@ export default function ResultsView({ jobId }: Props) {
     border-bottom: 1px solid var(--color-border-light);
   }
 
-  .advanced-header h5 {
+  .advanced-header h3 {
     margin: 0;
-    font-family: var(--font-heading);
-    color: var(--color-primary);
   }
 
   .btn-link {
@@ -435,50 +371,6 @@ export default function ResultsView({ jobId }: Props) {
     margin-right: 0.75rem;
   }
 
-  .main-content {
-    display: flex;
-    flex-direction: column;
-    gap: 3.5rem;
-  }
-
-  .content-section {
-    background: var(--color-surface-tinted);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 2rem 2rem 1rem 2rem;
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border-light);
-  }
-
-  .section-header h2 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: var(--color-primary);
-  }
-
-  .section-badge {
-    background: var(--color-accent);
-    color: white;
-    padding: 0.375rem 0.875rem;
-    border-radius: 20px;
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
-
-  .content-section .card {
-    margin: 0;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-    padding: 3rem;
-  }
-
   .export-section {
     margin-top: 3rem;
     padding-top: 3rem;
@@ -504,22 +396,8 @@ export default function ResultsView({ jobId }: Props) {
   }
 
   @media (max-width: 1024px) {
-    .layout-container {
-      grid-template-columns: 1fr;
-      gap: 2rem;
-    }
-
-    .sidebar {
-      position: static;
-      order: -1;
-    }
-
-    .main-content {
-      gap: 2rem;
-    }
-
-    .content-section .card {
-      padding: 2rem;
+    .workflow {
+      gap: 2.5rem;
     }
   }
 
@@ -535,23 +413,18 @@ export default function ResultsView({ jobId }: Props) {
       padding: 1.5rem;
     }
 
-    .step-nav {
-      padding: 1.5rem;
+    .workflow {
+      gap: 2rem;
     }
 
-    .settings-panel {
-      padding: 1.5rem;
+    .step-header {
+      flex-wrap: wrap;
     }
 
-    .section-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.75rem;
-      padding: 1.5rem;
-    }
-
-    .content-section .card {
-      padding: 1.5rem;
+    .step-count {
+      margin-left: 0;
+      order: -1;
+      margin-left: 59px;
     }
 
     .export-section {
