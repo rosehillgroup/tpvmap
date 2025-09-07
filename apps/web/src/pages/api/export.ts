@@ -60,11 +60,15 @@ function generatePDFHTML(recipes: Record<string, Recipe[]>, palette: PaletteEntr
     const target = palette.find(p => p.id === targetId);
     if (!target || targetRecipes.length === 0) return '';
     
-    const recipe = targetRecipes[0]; // Use best recipe
+    // Use the best recipe (lowest deltaE) for each target
+    const recipe = targetRecipes.reduce((best, current) => 
+      current.deltaE < best.deltaE ? current : best
+    );
+    const selectedIndex = targetRecipes.indexOf(recipe);
     
     // Debug: Log which recipe is selected for PDF export  
     console.log(`[${targetId}] PDF Export - Selected recipe:`, {
-      index: 0,
+      index: selectedIndex,
       weightsCount: Object.keys(recipe.weights).length,
       weights: recipe.weights,
       hasPartsData: !!recipe.parts,
@@ -202,12 +206,15 @@ export async function GET(context: any) {
         const target = palette.find(p => p.id === targetId);
         if (!target || targetRecipes.length === 0) continue;
         
-        // Use the first (best) recipe for each target
-        const recipe = targetRecipes[0];
+        // Use the best recipe (lowest deltaE) for each target
+        const recipe = targetRecipes.reduce((best, current) => 
+          current.deltaE < best.deltaE ? current : best
+        );
+        const selectedIndex = targetRecipes.indexOf(recipe);
         
         // Debug: Log which recipe is selected for export
         console.log(`[${targetId}] CSV Export - Selected recipe:`, {
-          index: 0,
+          index: selectedIndex,
           weightsCount: Object.keys(recipe.weights).length,
           weights: recipe.weights,
           hasPartsData: !!recipe.parts,
@@ -254,11 +261,15 @@ export async function GET(context: any) {
         const target = palette.find(p => p.id === targetId);
         if (!target || targetRecipes.length === 0) continue;
         
-        const recipe = targetRecipes[0];
+        // Use the best recipe (lowest deltaE) for each target
+        const recipe = targetRecipes.reduce((best, current) => 
+          current.deltaE < best.deltaE ? current : best
+        );
+        const selectedIndex = targetRecipes.indexOf(recipe);
         
         // Debug: Log which recipe is selected for JSON export
         console.log(`[${targetId}] JSON Export - Selected recipe:`, {
-          index: 0,
+          index: selectedIndex,
           weightsCount: Object.keys(recipe.weights).length,
           weights: recipe.weights,
           hasPartsData: !!recipe.parts,
