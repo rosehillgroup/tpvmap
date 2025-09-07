@@ -63,61 +63,8 @@ export default function BlendPresets({ constraints, onChange, onAdvancedMode }: 
     })
   )?.[0] || 'custom';
 
-  const handlePresetSelect = (presetKey: string) => {
-    const preset = PRESETS[presetKey as keyof typeof PRESETS];
-    if (preset.constraints) {
-      onChange({
-        ...preset.constraints,
-        forceComponents: constraints.forceComponents
-      });
-    } else {
-      onAdvancedMode();
-    }
-  };
-
-  return (
-    <div className="blend-presets">
-      <h3>Choose your blend approach</h3>
-      <div className="preset-grid">
-        {Object.entries(PRESETS).map(([key, preset]) => (
-          <button
-            key={key}
-            className={`preset-card ${currentPreset === key ? 'active' : ''}`}
-            onClick={() => handlePresetSelect(key)}
-          >
-            <div className="preset-icon">{preset.icon}</div>
-            <div className="preset-content">
-              <h4>{preset.name}</h4>
-              <p>{preset.description}</p>
-            </div>
-          </button>
-        ))}
-      </div>
-      
-      {currentPreset !== 'custom' && (
-        <div className="preset-summary">
-          <h4>Current settings:</h4>
-          <div className="settings-grid">
-            <div className="setting">
-              <span className="label">Max components:</span>
-              <span className="value">{constraints.maxComponents}</span>
-            </div>
-            <div className="setting">
-              <span className="label">Output format:</span>
-              <span className="value">{constraints.mode === 'parts' ? 'Parts ratio' : 'Percentages'}</span>
-            </div>
-            <div className="setting">
-              <span className="label">Precision:</span>
-              <span className="value">{constraints.stepPct === 0.02 ? 'High' : 'Standard'}</span>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-<style>{`
+  // Inline styles object
+  const styles = `
   .blend-presets {
     padding: 0;
   }
@@ -235,4 +182,62 @@ export default function BlendPresets({ constraints, onChange, onAdvancedMode }: 
       gap: 0.25rem;
     }
   }
-`}</style>
+  `;
+
+  const handlePresetSelect = (presetKey: string) => {
+    const preset = PRESETS[presetKey as keyof typeof PRESETS];
+    if (preset.constraints) {
+      onChange({
+        ...preset.constraints,
+        forceComponents: constraints.forceComponents
+      });
+    } else {
+      onAdvancedMode();
+    }
+  };
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div className="blend-presets">
+      <h3>Choose your blend approach</h3>
+      <div className="preset-grid">
+        {Object.entries(PRESETS).map(([key, preset]) => (
+          <button
+            key={key}
+            className={`preset-card ${currentPreset === key ? 'active' : ''}`}
+            onClick={() => handlePresetSelect(key)}
+          >
+            <div className="preset-icon">{preset.icon}</div>
+            <div className="preset-content">
+              <h4>{preset.name}</h4>
+              <p>{preset.description}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+      
+      {currentPreset !== 'custom' && (
+        <div className="preset-summary">
+          <h4>Current settings:</h4>
+          <div className="settings-grid">
+            <div className="setting">
+              <span className="label">Max components:</span>
+              <span className="value">{constraints.maxComponents}</span>
+            </div>
+            <div className="setting">
+              <span className="label">Output format:</span>
+              <span className="value">{constraints.mode === 'parts' ? 'Parts ratio' : 'Percentages'}</span>
+            </div>
+            <div className="setting">
+              <span className="label">Precision:</span>
+              <span className="value">{constraints.stepPct === 0.02 ? 'High' : 'Standard'}</span>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
+    </>
+  );
+}
+

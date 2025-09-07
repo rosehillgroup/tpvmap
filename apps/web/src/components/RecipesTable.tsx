@@ -31,115 +31,7 @@ interface Props {
 export default function RecipesTable({ recipes, palette, tpvColours, mode }: Props) {
   const [pinnedRecipes, setPinnedRecipes] = useState<Record<string, number>>({});
 
-  const handlePin = (targetId: string, recipeIndex: number) => {
-    setPinnedRecipes({
-      ...pinnedRecipes,
-      [targetId]: recipeIndex
-    });
-  };
-
-  const getTPVName = (code: string): string => {
-    const colour = tpvColours.find(c => c.code === code);
-    return colour ? `${code} ${colour.name}` : code;
-  };
-
-  return (
-    <div className="recipes-table">
-      {Object.entries(recipes).map(([targetId, targetRecipes]) => {
-        const target = palette.find(p => p.id === targetId);
-        if (!target) return null;
-
-        const targetHex = rgbToHex(target.rgb);
-        const pinnedIndex = pinnedRecipes[targetId] ?? 0;
-
-        return (
-          <div key={targetId} className="target-section">
-            <div className="target-header">
-              <div className="target-info">
-                <div 
-                  className="swatch"
-                  style={{ backgroundColor: targetHex }}
-                />
-                <div>
-                  <h3>Target Colour: {targetHex}</h3>
-                  <p>Coverage: {target.areaPct.toFixed(1)}% of design</p>
-                </div>
-              </div>
-            </div>
-
-            <table>
-              <thead>
-                <tr>
-                  <th>Pin</th>
-                  <th>Recipe</th>
-                  <th>Preview</th>
-                  <th>ΔE2000</th>
-                  <th>Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...targetRecipes]
-                  .sort((a, b) => a.deltaE - b.deltaE)
-                  .map((recipe, index) => {
-                  const recipeHex = rgbToHex(recipe.rgb);
-                  const isPinned = pinnedIndex === index;
-                  
-                  return (
-                    <tr key={index} className={isPinned ? 'pinned' : ''}>
-                      <td>
-                        <button 
-                          className="pin-btn"
-                          onClick={() => handlePin(targetId, index)}
-                          title={isPinned ? 'Pinned' : 'Pin this recipe'}
-                        >
-                          {isPinned ? '📌' : '📍'}
-                        </button>
-                      </td>
-                      <td>
-                        {mode === 'parts' && recipe.parts ? (
-                          <div className="recipe-text">
-                            <strong>{formatParts(recipe.parts)}</strong>
-                            <span className="approx">≈ {formatPercentages(recipe.weights)}</span>
-                          </div>
-                        ) : (
-                          <div className="recipe-text">
-                            <strong>{formatPercentages(recipe.weights)}</strong>
-                          </div>
-                        )}
-                        <div className="components">
-                          {Object.entries(recipe.weights).map(([code, weight]) => (
-                            <span key={code} className="component">
-                              {getTPVName(code)}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="preview-cell">
-                          <div 
-                            className="swatch"
-                            style={{ backgroundColor: recipeHex }}
-                          />
-                          <span>{recipeHex}</span>
-                        </div>
-                      </td>
-                      <td className={`delta-e ${recipe.deltaE < 1 ? 'excellent' : recipe.deltaE < 2 ? 'good' : 'fair'}`}>
-                        {recipe.deltaE.toFixed(2)}
-                      </td>
-                      <td>{recipe.note || '-'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-<style>{`
+  const styles = `
   .recipes-table {
     display: flex;
     flex-direction: column;
@@ -379,4 +271,115 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
       height: 48px;
     }
   }
-`}</style>
+  `;
+
+  const handlePin = (targetId: string, recipeIndex: number) => {
+    setPinnedRecipes({
+      ...pinnedRecipes,
+      [targetId]: recipeIndex
+    });
+  };
+
+  const getTPVName = (code: string): string => {
+    const colour = tpvColours.find(c => c.code === code);
+    return colour ? `${code} ${colour.name}` : code;
+  };
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div className="recipes-table">
+      {Object.entries(recipes).map(([targetId, targetRecipes]) => {
+        const target = palette.find(p => p.id === targetId);
+        if (!target) return null;
+
+        const targetHex = rgbToHex(target.rgb);
+        const pinnedIndex = pinnedRecipes[targetId] ?? 0;
+
+        return (
+          <div key={targetId} className="target-section">
+            <div className="target-header">
+              <div className="target-info">
+                <div 
+                  className="swatch"
+                  style={{ backgroundColor: targetHex }}
+                />
+                <div>
+                  <h3>Target Colour: {targetHex}</h3>
+                  <p>Coverage: {target.areaPct.toFixed(1)}% of design</p>
+                </div>
+              </div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>Pin</th>
+                  <th>Recipe</th>
+                  <th>Preview</th>
+                  <th>ΔE2000</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...targetRecipes]
+                  .sort((a, b) => a.deltaE - b.deltaE)
+                  .map((recipe, index) => {
+                  const recipeHex = rgbToHex(recipe.rgb);
+                  const isPinned = pinnedIndex === index;
+                  
+                  return (
+                    <tr key={index} className={isPinned ? 'pinned' : ''}>
+                      <td>
+                        <button 
+                          className="pin-btn"
+                          onClick={() => handlePin(targetId, index)}
+                          title={isPinned ? 'Pinned' : 'Pin this recipe'}
+                        >
+                          {isPinned ? '📌' : '📍'}
+                        </button>
+                      </td>
+                      <td>
+                        {mode === 'parts' && recipe.parts ? (
+                          <div className="recipe-text">
+                            <strong>{formatParts(recipe.parts)}</strong>
+                            <span className="approx">≈ {formatPercentages(recipe.weights)}</span>
+                          </div>
+                        ) : (
+                          <div className="recipe-text">
+                            <strong>{formatPercentages(recipe.weights)}</strong>
+                          </div>
+                        )}
+                        <div className="components">
+                          {Object.entries(recipe.weights).map(([code, weight]) => (
+                            <span key={code} className="component">
+                              {getTPVName(code)}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="preview-cell">
+                          <div 
+                            className="swatch"
+                            style={{ backgroundColor: recipeHex }}
+                          />
+                          <span>{recipeHex}</span>
+                        </div>
+                      </td>
+                      <td className={`delta-e ${recipe.deltaE < 1 ? 'excellent' : recipe.deltaE < 2 ? 'good' : 'fair'}`}>
+                        {recipe.deltaE.toFixed(2)}
+                      </td>
+                      <td>{recipe.note || '-'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+      </div>
+    </>
+  );
+}
