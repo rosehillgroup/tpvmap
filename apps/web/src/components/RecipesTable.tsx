@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { rgbToHex } from '../lib/colour/convert';
 import { formatParts, formatPercentages } from '../lib/colour/parts';
+import VisualRecipe from './VisualRecipe';
 import type { TPVColour } from '../lib/colour/blend';
 
 interface Recipe {
@@ -44,7 +45,7 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
   };
 
   return (
-    <div className="recipes-table">
+    <div className="recipes-container">
       {Object.entries(recipes).map(([targetId, targetRecipes]) => {
         const target = palette.find(p => p.id === targetId);
         if (!target) return null;
@@ -52,84 +53,44 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
         const targetHex = rgbToHex(target.rgb);
         const pinnedIndex = pinnedRecipes[targetId] ?? 0;
 
+        // Sort recipes by accuracy (deltaE)
+        const sortedRecipes = [...targetRecipes].sort((a, b) => a.deltaE - b.deltaE);
+
         return (
-          <div key={targetId} className="target-section">
+          <div key={targetId} className="target-group">
             <div className="target-header">
               <div className="target-info">
                 <div 
-                  className="swatch"
+                  className="target-swatch"
                   style={{ backgroundColor: targetHex }}
                 />
-                <div>
-                  <h3>Target: {targetHex}</h3>
-                  <p>Area: {target.areaPct.toFixed(1)}%</p>
+                <div className="target-details">
+                  <h3>Target Colour: {targetHex}</h3>
+                  <p>Coverage: {target.areaPct.toFixed(1)}% of design</p>
                 </div>
+              </div>
+              <div className="target-stats">
+                <span className="recipe-count">{targetRecipes.length} recipe{targetRecipes.length !== 1 ? 's' : ''}</span>
               </div>
             </div>
 
-            <table>
-              <thead>
-                <tr>
-                  <th>Pin</th>
-                  <th>Recipe</th>
-                  <th>Preview</th>
-                  <th>ΔE2000</th>
-                  <th>Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {targetRecipes.map((recipe, index) => {
-                  const recipeHex = rgbToHex(recipe.rgb);
-                  const isPinned = pinnedIndex === index;
-                  
-                  return (
-                    <tr key={index} className={isPinned ? 'pinned' : ''}>
-                      <td>
-                        <button 
-                          className="pin-btn"
-                          onClick={() => handlePin(targetId, index)}
-                          title={isPinned ? 'Pinned' : 'Pin this recipe'}
-                        >
-                          {isPinned ? '📌' : '📍'}
-                        </button>
-                      </td>
-                      <td>
-                        {mode === 'parts' && recipe.parts ? (
-                          <div className="recipe-text">
-                            <strong>{formatParts(recipe.parts)}</strong>
-                            <span className="approx">≈ {formatPercentages(recipe.weights)}</span>
-                          </div>
-                        ) : (
-                          <div className="recipe-text">
-                            <strong>{formatPercentages(recipe.weights)}</strong>
-                          </div>
-                        )}
-                        <div className="components">
-                          {Object.entries(recipe.weights).map(([code, weight]) => (
-                            <span key={code} className="component">
-                              {getTPVName(code)}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="preview-cell">
-                          <div 
-                            className="swatch"
-                            style={{ backgroundColor: recipeHex }}
-                          />
-                          <span>{recipeHex}</span>
-                        </div>
-                      </td>
-                      <td className={`delta-e ${recipe.deltaE < 1 ? 'excellent' : recipe.deltaE < 2 ? 'good' : 'fair'}`}>
-                        {recipe.deltaE.toFixed(2)}
-                      </td>
-                      <td>{recipe.note || '-'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="recipes-grid">
+              {sortedRecipes.map((recipe, index) => {
+                const originalIndex = targetRecipes.indexOf(recipe);
+                const isPinned = pinnedIndex === originalIndex;
+                
+                return (
+                  <VisualRecipe
+                    key={originalIndex}
+                    recipe={recipe}
+                    tpvColours={tpvColours}
+                    mode={mode}
+                    onPin={() => handlePin(targetId, originalIndex)}
+                    isPinned={isPinned}
+                  />
+                );
+              })}
+            </div>
           </div>
         );
       })}
@@ -138,235 +99,120 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
 }
 
 <style>{`
-  .recipes-table {
+  .recipes-container {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 3rem;
   }
 
-  .target-section {
-    border: 1px solid var(--color-border-light);
+  .target-group {
     border-radius: var(--radius);
     overflow: hidden;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md);
+    background: var(--color-surface);
   }
 
   .target-header {
     background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-    padding: 1.5rem;
+    padding: 2rem;
     color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .target-info {
     display: flex;
     align-items: center;
-    gap: 1.25rem;
+    gap: 1.5rem;
   }
 
-  .target-info .swatch {
-    width: 60px;
-    height: 60px;
-    border-radius: var(--radius-sm);
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+  .target-swatch {
+    width: 72px;
+    height: 72px;
+    border-radius: var(--radius);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
     flex-shrink: 0;
   }
 
-  .target-info h3 {
-    margin: 0;
-    font-size: 1.25rem;
+  .target-details h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.375rem;
     font-family: var(--font-heading);
     font-weight: 600;
     color: white;
   }
 
-  .target-info p {
+  .target-details p {
     margin: 0;
-    font-size: 0.875rem;
+    font-size: 1rem;
     color: rgba(255,255,255,0.9);
+    font-weight: 300;
   }
 
-  .target-section table {
-    border-collapse: collapse;
-    background: var(--color-surface);
+  .target-stats {
+    text-align: right;
   }
 
-  .target-section th {
-    background: var(--color-background);
-    font-family: var(--font-heading);
-    font-weight: 600;
-    color: var(--color-primary);
-    padding: 1rem 0.75rem;
-    text-align: left;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-    border-bottom: 2px solid var(--color-border);
-  }
-
-  .target-section td {
-    padding: 1rem 0.75rem;
-    border-bottom: 1px solid var(--color-border-light);
-    vertical-align: middle;
-  }
-
-  .target-section tr:hover {
-    background: rgba(255, 107, 53, 0.03);
-  }
-
-  .pin-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.25rem;
-    padding: 0.375rem;
-    border-radius: var(--radius-sm);
-    opacity: 0.5;
-    transition: all 0.2s ease;
-  }
-
-  .pin-btn:hover {
-    opacity: 1;
-    background: var(--color-background);
-  }
-
-  tr.pinned {
-    background: rgba(255, 107, 53, 0.08);
-    border-left: 4px solid var(--color-accent);
-  }
-
-  tr.pinned .pin-btn {
-    opacity: 1;
-    color: var(--color-accent);
-  }
-
-  .recipe-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-    min-width: 200px;
-  }
-
-  .recipe-text strong {
-    font-family: 'SF Mono', 'Monaco', monospace;
-    font-size: 0.9375rem;
-    color: var(--color-text);
-    background: var(--color-background);
-    padding: 0.375rem 0.625rem;
-    border-radius: var(--radius-sm);
-    display: inline-block;
-  }
-
-  .recipe-text .approx {
-    font-size: 0.8125rem;
-    color: var(--color-text-light);
-    font-family: 'SF Mono', 'Monaco', monospace;
-  }
-
-  .components {
-    display: flex;
-    gap: 0.375rem;
-    flex-wrap: wrap;
-    margin-top: 0.5rem;
-  }
-
-  .component {
-    font-size: 0.75rem;
-    background: var(--color-background);
-    color: var(--color-text-light);
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border-light);
-  }
-
-  .preview-cell {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-width: 120px;
-  }
-
-  .preview-cell .swatch {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-sm);
-    border: 2px solid var(--color-border-light);
-    flex-shrink: 0;
-  }
-
-  .preview-cell span {
-    font-family: 'SF Mono', 'Monaco', monospace;
+  .recipe-count {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
     font-size: 0.875rem;
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
   }
 
-  .delta-e {
-    font-weight: 600;
-    font-size: 0.9375rem;
-    padding: 0.25rem 0.625rem;
-    border-radius: var(--radius-sm);
-    text-align: center;
-    min-width: 60px;
+  .recipes-grid {
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
   }
 
-  .delta-e.excellent {
-    background: rgba(75, 170, 52, 0.15);
-    color: #2D7D32;
-    border: 1px solid rgba(75, 170, 52, 0.3);
-  }
-
-  .delta-e.good {
-    background: rgba(255, 107, 53, 0.15);
-    color: #E65100;
-    border: 1px solid rgba(255, 107, 53, 0.3);
-  }
-
-  .delta-e.fair {
-    background: var(--color-background);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
+  @media (max-width: 1200px) {
+    .recipes-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 768px) {
     .target-header {
-      padding: 1rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.5rem;
+      padding: 1.5rem;
     }
 
     .target-info {
       gap: 1rem;
+      width: 100%;
     }
 
-    .target-info .swatch {
-      width: 48px;
-      height: 48px;
+    .target-swatch {
+      width: 60px;
+      height: 60px;
     }
 
-    .target-section th,
-    .target-section td {
-      padding: 0.75rem 0.5rem;
+    .target-details h3 {
+      font-size: 1.125rem;
     }
 
-    .recipe-text {
-      min-width: unset;
+    .target-details p {
+      font-size: 0.875rem;
     }
 
-    .components {
-      gap: 0.25rem;
+    .target-stats {
+      text-align: left;
+      width: 100%;
     }
 
-    .component {
-      font-size: 0.6875rem;
-      padding: 0.1875rem 0.375rem;
-    }
-
-    .preview-cell {
-      gap: 0.5rem;
-      min-width: unset;
-    }
-
-    .preview-cell .swatch {
-      width: 40px;
-      height: 40px;
+    .recipes-grid {
+      padding: 1.5rem;
+      grid-template-columns: 1fr;
+      gap: 1rem;
     }
   }
 `}</style>

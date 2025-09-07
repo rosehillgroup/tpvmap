@@ -77,8 +77,8 @@ export default function UploadForm() {
     const stages = [
       { stage: 'uploading' as const, progress: 20, message: 'File uploaded successfully' },
       { stage: 'processing' as const, progress: 40, message: 'Processing file structure...' },
-      { stage: 'extracting' as const, progress: 70, message: 'Extracting color palette...' },
-      { stage: 'caching' as const, progress: 90, message: 'Optimizing results...' },
+      { stage: 'extracting' as const, progress: 70, message: 'Extracting colour palette...' },
+      { stage: 'caching' as const, progress: 90, message: 'Optimising results...' },
       { stage: 'complete' as const, progress: 100, message: 'Ready to view results!' }
     ];
 

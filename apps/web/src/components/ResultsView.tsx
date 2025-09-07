@@ -126,110 +126,136 @@ export default function ResultsView({ jobId }: Props) {
     <div className="results-view">
       <div className="header">
         <div className="header-content">
-          <h1>Color Match Results</h1>
-          <p className="subtitle">Generated blends for your design colors</p>
+          <h1>Colour Match Results</h1>
+          <p className="subtitle">Generated blends for your design colours</p>
         </div>
         <button className="btn btn-secondary" onClick={() => window.location.href = '/'}>
           ← New Design
         </button>
       </div>
 
-      <div className="workflow">
-        <div className="workflow-step active">
-          <div className="step-header">
-            <div className="step-number">1</div>
-            <h2>Extracted Colors</h2>
-            <span className="step-count">{palette.length} found</span>
-          </div>
-          <div className="card">
-            <PaletteTable 
-              palette={palette}
-              selectedTargets={selectedTargets}
-              onSelectionChange={setSelectedTargets}
-            />
-          </div>
-        </div>
-
-        <div className={`workflow-step ${selectedTargets.length > 0 ? 'active' : 'disabled'}`}>
-          <div className="step-header">
-            <div className="step-number">2</div>
-            <h2>Blend Settings</h2>
-            <span className="step-count">{selectedTargets.length} selected</span>
-          </div>
-          <div className="card">
-            {!showAdvanced ? (
-              <BlendPresets
-                constraints={constraints}
-                onChange={setConstraints}
-                onAdvancedMode={() => setShowAdvanced(true)}
-              />
-            ) : (
-              <div>
-                <div className="advanced-header">
-                  <h3>Advanced Settings</h3>
-                  <button 
-                    className="btn-link"
-                    onClick={() => setShowAdvanced(false)}
-                  >
-                    ← Back to presets
-                  </button>
+      <div className="layout-container">
+        <aside className="sidebar">
+          <div className="sidebar-content">
+            <div className="step-nav">
+              <div className={`step-nav-item ${palette.length > 0 ? 'active' : 'pending'}`}>
+                <div className="step-number">1</div>
+                <div className="step-info">
+                  <h3>Extract Colours</h3>
+                  <span className="step-status">{palette.length} found</span>
                 </div>
-                <ConstraintsPanel 
-                  constraints={constraints}
-                  onChange={setConstraints}
-                  tpvColours={tpvColours as TPVColour[]}
-                />
+              </div>
+              
+              <div className={`step-nav-item ${selectedTargets.length > 0 ? 'active' : 'disabled'}`}>
+                <div className="step-number">2</div>
+                <div className="step-info">
+                  <h3>Blend Settings</h3>
+                  <span className="step-status">{selectedTargets.length} selected</span>
+                </div>
+              </div>
+              
+              <div className={`step-nav-item ${Object.keys(recipes).length > 0 ? 'active' : 'disabled'}`}>
+                <div className="step-number">3</div>
+                <div className="step-info">
+                  <h3>Your Blends</h3>
+                  <span className="step-status">{Object.keys(recipes).length} recipes</span>
+                </div>
+              </div>
+            </div>
+
+            {selectedTargets.length > 0 && (
+              <div className="settings-panel">
+                <h4>Blend Configuration</h4>
+                {!showAdvanced ? (
+                  <BlendPresets
+                    constraints={constraints}
+                    onChange={setConstraints}
+                    onAdvancedMode={() => setShowAdvanced(true)}
+                  />
+                ) : (
+                  <div>
+                    <div className="advanced-header">
+                      <h5>Advanced Settings</h5>
+                      <button 
+                        className="btn-link"
+                        onClick={() => setShowAdvanced(false)}
+                      >
+                        ← Back to presets
+                      </button>
+                    </div>
+                    <ConstraintsPanel 
+                      constraints={constraints}
+                      onChange={setConstraints}
+                      tpvColours={tpvColours as TPVColour[]}
+                    />
+                  </div>
+                )}
+                
+                <button 
+                  className="btn btn-primary generate-btn"
+                  onClick={handleSolve}
+                  disabled={selectedTargets.length === 0 || solving}
+                >
+                  {solving ? (
+                    <>
+                      <span className="loading"></span>
+                      <span>Calculating blends...</span>
+                    </>
+                  ) : (
+                    `Generate ${selectedTargets.length} Blend${selectedTargets.length !== 1 ? 's' : ''}`
+                  )}
+                </button>
               </div>
             )}
-            
-            <button 
-              className="btn btn-primary generate-btn"
-              onClick={handleSolve}
-              disabled={selectedTargets.length === 0 || solving}
-            >
-              {solving ? (
-                <>
-                  <span className="loading"></span>
-                  <span>Calculating blends...</span>
-                </>
-              ) : (
-                `Generate ${selectedTargets.length} Blend${selectedTargets.length !== 1 ? 's' : ''}`
-              )}
-            </button>
           </div>
-        </div>
+        </aside>
 
-        {Object.keys(recipes).length > 0 && (
-          <div className="workflow-step active">
-            <div className="step-header">
-              <div className="step-number">3</div>
-              <h2>Your Blends</h2>
-              <span className="step-count">{Object.keys(recipes).length} recipes</span>
+        <main className="main-content">
+          <section className="content-section">
+            <div className="section-header">
+              <h2>Extracted Colours</h2>
+              <div className="section-badge">{palette.length} colours found</div>
             </div>
             <div className="card">
-              <RecipesTable 
-                recipes={recipes}
+              <PaletteTable 
                 palette={palette}
-                tpvColours={tpvColours as TPVColour[]}
-                mode={constraints.mode}
+                selectedTargets={selectedTargets}
+                onSelectionChange={setSelectedTargets}
               />
-              <div className="export-section">
-                <h4>Download Results</h4>
-                <div className="export-buttons">
-                  <button className="btn btn-secondary" onClick={() => handleExport('csv')}>
-                    📊 Spreadsheet
-                  </button>
-                  <button className="btn btn-secondary" onClick={() => handleExport('json')}>
-                    🔧 Data File
-                  </button>
-                  <button className="btn btn-accent" onClick={() => handleExport('pdf')}>
-                    📄 Specification Sheet
-                  </button>
+            </div>
+          </section>
+
+          {Object.keys(recipes).length > 0 && (
+            <section className="content-section">
+              <div className="section-header">
+                <h2>Your Blend Recipes</h2>
+                <div className="section-badge">{Object.keys(recipes).length} recipes generated</div>
+              </div>
+              <div className="card">
+                <RecipesTable 
+                  recipes={recipes}
+                  palette={palette}
+                  tpvColours={tpvColours as TPVColour[]}
+                  mode={constraints.mode}
+                />
+                <div className="export-section">
+                  <h4>Download Results</h4>
+                  <div className="export-buttons">
+                    <button className="btn btn-secondary" onClick={() => handleExport('csv')}>
+                      📊 Spreadsheet
+                    </button>
+                    <button className="btn btn-secondary" onClick={() => handleExport('json')}>
+                      🔧 Data File
+                    </button>
+                    <button className="btn btn-accent" onClick={() => handleExport('pdf')}>
+                      📄 Specification Sheet
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            </section>
+          )}
+        </main>
       </div>
     </div>
   );
@@ -237,7 +263,7 @@ export default function ResultsView({ jobId }: Props) {
 
 <style>{`
   .results-view {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 1rem;
   }
@@ -247,16 +273,19 @@ export default function ResultsView({ jobId }: Props) {
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 3rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid var(--color-border-light);
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    border-radius: var(--radius);
+    color: white;
   }
 
   .header-content h1 {
     margin-bottom: 0.5rem;
+    color: white;
   }
 
   .subtitle {
-    color: var(--color-text-light);
+    color: rgba(255,255,255,0.9);
     font-size: 1.125rem;
     margin: 0;
   }
@@ -273,61 +302,97 @@ export default function ResultsView({ jobId }: Props) {
     margin: 0 auto 1.5rem;
   }
 
-  .workflow {
-    display: flex;
-    flex-direction: column;
+  .layout-container {
+    display: grid;
+    grid-template-columns: 350px 1fr;
     gap: 2rem;
+    align-items: start;
   }
 
-  .workflow-step {
-    position: relative;
-    transition: all 0.3s ease;
+  .sidebar {
+    position: sticky;
+    top: 2rem;
   }
 
-  .workflow-step.disabled {
-    opacity: 0.5;
-    pointer-events: none;
+  .sidebar-content {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border-light);
   }
 
-  .step-header {
+  .step-nav {
+    padding: 2rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .step-nav-item {
     display: flex;
     align-items: center;
     gap: 1rem;
+    padding: 1rem;
     margin-bottom: 1rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.3s ease;
   }
 
-  .step-number {
+  .step-nav-item.active {
+    background: rgba(255, 107, 53, 0.1);
+    border-left: 4px solid var(--color-accent);
+  }
+
+  .step-nav-item.pending {
+    background: rgba(27, 79, 156, 0.05);
+  }
+
+  .step-nav-item.disabled {
+    opacity: 0.5;
+  }
+
+  .step-nav-item .step-number {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     background: var(--color-accent);
     color: white;
     border-radius: 50%;
     font-family: var(--font-heading);
     font-weight: 600;
-    font-size: 1.125rem;
+    font-size: 1rem;
     flex-shrink: 0;
   }
 
-  .workflow-step.disabled .step-number {
+  .step-nav-item.disabled .step-number {
     background: var(--color-text-muted);
   }
 
-  .step-header h2 {
-    margin: 0;
-    font-size: 1.5rem;
+  .step-nav-item.pending .step-number {
+    background: var(--color-secondary);
   }
 
-  .step-count {
-    margin-left: auto;
-    background: var(--color-background);
-    color: var(--color-text-light);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
+  .step-info h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--color-primary);
+    font-family: var(--font-heading);
+  }
+
+  .step-status {
     font-size: 0.875rem;
-    font-weight: 500;
+    color: var(--color-text-light);
+  }
+
+  .settings-panel {
+    padding: 2rem;
+  }
+
+  .settings-panel h4 {
+    font-family: var(--font-heading);
+    color: var(--color-primary);
+    margin-bottom: 1.5rem;
+    font-size: 1.125rem;
   }
 
   .advanced-header {
@@ -339,8 +404,10 @@ export default function ResultsView({ jobId }: Props) {
     border-bottom: 1px solid var(--color-border-light);
   }
 
-  .advanced-header h3 {
+  .advanced-header h5 {
     margin: 0;
+    font-family: var(--font-heading);
+    color: var(--color-primary);
   }
 
   .btn-link {
@@ -368,16 +435,60 @@ export default function ResultsView({ jobId }: Props) {
     margin-right: 0.75rem;
   }
 
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+
+  .content-section {
+    background: var(--color-surface-tinted);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 2rem 1rem 2rem;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .section-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--color-primary);
+  }
+
+  .section-badge {
+    background: var(--color-accent);
+    color: white;
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .content-section .card {
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    padding: 3rem;
+  }
+
   .export-section {
-    margin-top: 2rem;
-    padding-top: 2rem;
+    margin-top: 3rem;
+    padding-top: 3rem;
     border-top: 1px solid var(--color-border-light);
   }
 
   .export-section h4 {
     font-family: var(--font-heading);
     color: var(--color-primary);
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     font-size: 1.125rem;
   }
 
@@ -392,6 +503,26 @@ export default function ResultsView({ jobId }: Props) {
     gap: 0.5rem;
   }
 
+  @media (max-width: 1024px) {
+    .layout-container {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .sidebar {
+      position: static;
+      order: -1;
+    }
+
+    .main-content {
+      gap: 2rem;
+    }
+
+    .content-section .card {
+      padding: 2rem;
+    }
+  }
+
   @media (max-width: 768px) {
     .results-view {
       padding: 0.5rem;
@@ -401,26 +532,35 @@ export default function ResultsView({ jobId }: Props) {
       flex-direction: column;
       align-items: stretch;
       gap: 1.5rem;
+      padding: 1.5rem;
     }
 
-    .step-header {
-      flex-wrap: wrap;
+    .step-nav {
+      padding: 1.5rem;
     }
 
-    .step-count {
-      margin-left: 0;
-      order: -1;
-      margin-left: 51px;
+    .settings-panel {
+      padding: 1.5rem;
+    }
+
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1.5rem;
+    }
+
+    .content-section .card {
+      padding: 1.5rem;
+    }
+
+    .export-section {
+      margin-top: 2rem;
+      padding-top: 2rem;
     }
 
     .export-buttons {
       grid-template-columns: 1fr;
-    }
-
-    .advanced-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.5rem;
     }
   }
 `}</style>
