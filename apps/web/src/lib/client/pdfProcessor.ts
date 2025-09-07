@@ -33,11 +33,9 @@ export async function generatePDFThumbnail(
     const pdfjsLib = await import('pdfjs-dist');
     console.info('PDF.js loaded, version:', pdfjsLib.version);
     
-    // Configure worker if not already configured
-    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
-      console.info('PDF.js worker configured');
-    }
+    // Disable worker to avoid CORS issues - PDF.js will run in main thread
+    pdfjsLib.GlobalWorkerOptions.workerSrc = null;
+    console.info('PDF.js worker disabled to avoid CORS issues');
     
     const arrayBuffer = await file.arrayBuffer();
     console.info('PDF file read, size:', arrayBuffer.byteLength);
@@ -112,10 +110,8 @@ export async function extractPDFRasterSamples(
     // Dynamic import to avoid server-side loading
     const pdfjsLib = await import('pdfjs-dist');
     
-    // Configure worker if not already configured
-    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
-    }
+    // Disable worker to avoid CORS issues - PDF.js will run in main thread
+    pdfjsLib.GlobalWorkerOptions.workerSrc = null;
     
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
