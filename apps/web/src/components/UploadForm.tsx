@@ -202,18 +202,18 @@ export default function UploadForm() {
 
 <style>{`
   .upload-form {
-    max-width: 600px;
-    margin: 2rem auto;
+    width: 100%;
   }
 
   .drop-zone {
     position: relative;
-    border: 2px dashed var(--color-border);
+    border: 3px dashed var(--color-border);
     border-radius: var(--radius);
-    padding: 3rem 2rem;
+    padding: 4rem 3rem;
     text-align: center;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: var(--color-surface);
+    background: var(--color-surface-tinted);
+    cursor: pointer;
   }
 
   .drop-zone.active {
@@ -242,25 +242,51 @@ export default function UploadForm() {
   }
 
   .drop-zone svg {
-    margin-bottom: 1rem;
-    opacity: 0.5;
+    margin-bottom: 1.5rem;
+    opacity: 0.4;
+    transition: all 0.3s ease;
+  }
+
+  .drop-zone:hover svg {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+
+  .drop-zone p {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
   }
 
   .drop-zone .or {
-    margin: 0.5rem 0;
+    margin: 1rem 0;
     font-size: 0.875rem;
+    color: var(--color-text-light);
+    font-weight: normal;
   }
 
   .drop-zone .browse {
     color: var(--color-accent);
-    text-decoration: underline;
-    font-weight: 500;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.5rem 1.5rem;
+    border: 2px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    display: inline-block;
+    transition: all 0.2s ease;
+  }
+
+  .drop-zone:hover .browse {
+    background: var(--color-accent);
+    color: white;
   }
 
   .drop-zone .formats {
-    margin-top: 1rem;
-    font-size: 0.875rem;
-    opacity: 0.7;
+    margin-top: 1.5rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
   }
 
   .file-info {
@@ -284,9 +310,17 @@ export default function UploadForm() {
 
   .upload-btn {
     width: 100%;
-    margin-top: 1.5rem;
-    height: 48px;
+    margin-top: 2rem;
+    height: 56px;
     font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.25);
+  }
+
+  .upload-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.35);
   }
 
   .upload-btn .loading {
@@ -294,26 +328,29 @@ export default function UploadForm() {
   }
 
   .progress-container {
-    margin-top: 1.5rem;
-    padding: 1rem;
-    background: var(--color-surface);
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: var(--color-surface-tinted);
     border-radius: var(--radius);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--color-border-light);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   }
 
   .progress-bar {
     width: 100%;
-    height: 8px;
+    height: 10px;
     background: var(--color-background);
-    border-radius: 4px;
+    border-radius: 5px;
     overflow: hidden;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
   }
 
   .progress-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
     transition: width 0.5s ease-in-out;
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
   }
 
   .progress-info {

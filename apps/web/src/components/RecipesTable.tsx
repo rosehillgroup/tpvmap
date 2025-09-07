@@ -229,6 +229,84 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
     border: 1px solid var(--color-border);
   }
 
+  /* Match Quality Legend */
+  .match-quality-legend {
+    margin-top: 3rem;
+    padding: 1.5rem;
+    background: var(--color-background);
+    border-radius: var(--radius);
+    border: 1px solid var(--color-border-light);
+  }
+
+  .match-quality-legend h4 {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    color: var(--color-primary);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .match-quality-legend > p {
+    font-size: 0.875rem;
+    color: var(--color-text-light);
+    margin: 0 0 1rem 0;
+    line-height: 1.4;
+  }
+
+  .quality-levels {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .quality-level {
+    display: grid;
+    grid-template-columns: 100px 80px 1fr;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+  }
+
+  .quality-badge {
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+    text-align: center;
+  }
+
+  .quality-level.excellent .quality-badge {
+    background: rgba(75, 170, 52, 0.15);
+    color: #2D7D32;
+    border: 1px solid rgba(75, 170, 52, 0.3);
+  }
+
+  .quality-level.good .quality-badge {
+    background: rgba(255, 107, 53, 0.15);
+    color: #E65100;
+    border: 1px solid rgba(255, 107, 53, 0.3);
+  }
+
+  .quality-level.fair .quality-badge {
+    background: var(--color-background);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+  }
+
+  .quality-range {
+    font-family: 'SF Mono', 'Monaco', monospace;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+  }
+
+  .quality-desc {
+    font-size: 0.8125rem;
+    color: var(--color-text-light);
+    line-height: 1.3;
+  }
+
   @media (max-width: 768px) {
     .target-header {
       padding: 1.5rem;
@@ -269,6 +347,17 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
     .preview-cell .swatch {
       width: 48px;
       height: 48px;
+    }
+
+    .quality-level {
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+      text-align: center;
+    }
+
+    .quality-badge {
+      width: fit-content;
+      margin: 0 auto;
     }
   }
   `;
@@ -317,7 +406,12 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
                   <th>Pin</th>
                   <th>Recipe</th>
                   <th>Preview</th>
-                  <th>ΔE2000</th>
+                  <th title="ΔE2000 colour difference - lower values mean better matches">
+                    Match Quality 
+                    <span style={{ fontSize: '0.75rem', fontWeight: 'normal', marginLeft: '0.25rem' }}>
+                      (ΔE2000)
+                    </span>
+                  </th>
                   <th>Note</th>
                 </tr>
               </thead>
@@ -379,6 +473,30 @@ export default function RecipesTable({ recipes, palette, tpvColours, mode }: Pro
           </div>
         );
       })}
+      
+      {Object.keys(recipes).length > 0 && (
+        <div className="match-quality-legend">
+          <h4>Understanding Match Quality (ΔE2000)</h4>
+          <p>ΔE2000 is the industry standard for measuring colour difference. Lower values mean better matches:</p>
+          <div className="quality-levels">
+            <div className="quality-level excellent">
+              <span className="quality-badge">Excellent</span>
+              <span className="quality-range">&lt; 1.0</span>
+              <span className="quality-desc">Virtually indistinguishable to the human eye</span>
+            </div>
+            <div className="quality-level good">
+              <span className="quality-badge">Good</span>
+              <span className="quality-range">1.0 - 2.0</span>
+              <span className="quality-desc">Very close match, minor difference only visible side-by-side</span>
+            </div>
+            <div className="quality-level fair">
+              <span className="quality-badge">Fair</span>
+              <span className="quality-range">&gt; 2.0</span>
+              <span className="quality-desc">Visible difference, but may be acceptable depending on use</span>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </>
   );

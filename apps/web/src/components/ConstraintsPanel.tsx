@@ -362,7 +362,7 @@ export default function ConstraintsPanel({ constraints, onChange, tpvColours }: 
             <h3 className="section-title">⚙️ Blend Settings</h3>
           </div>
           <p className="section-description">
-            Control how the color matching algorithm searches for blends
+            Control how the colour matching algorithm searches for blends
           </p>
           
           <div className="settings-grid">
@@ -370,7 +370,7 @@ export default function ConstraintsPanel({ constraints, onChange, tpvColours }: 
             <div className="form-group">
               <label className="form-label">
                 Max Components
-                <span className="current-value">{constraints.maxComponents} colors</span>
+                <span className="current-value">{constraints.maxComponents} colours</span>
               </label>
               <select 
                 value={constraints.maxComponents}
@@ -379,7 +379,7 @@ export default function ConstraintsPanel({ constraints, onChange, tpvColours }: 
                 <option value="2">2 components</option>
                 <option value="3">3 components</option>
               </select>
-              <p className="form-help">Maximum number of TPV colors to mix together</p>
+              <p className="form-help">Maximum number of TPV colours to mix together</p>
             </div>
 
             <div className="form-group">
@@ -425,7 +425,7 @@ export default function ConstraintsPanel({ constraints, onChange, tpvColours }: 
                   <span>30% min</span>
                 </div>
               </div>
-              <p className="form-help">Minimum percentage any color can contribute to a blend</p>
+              <p className="form-help">Minimum percentage any colour can contribute to a blend</p>
             </div>
 
             {constraints.mode === 'parts' && (
@@ -473,7 +473,7 @@ export default function ConstraintsPanel({ constraints, onChange, tpvColours }: 
                       <span>5 parts</span>
                     </div>
                   </div>
-                  <p className="form-help">Minimum parts any color must contribute</p>
+                  <p className="form-help">Minimum parts any colour must contribute</p>
                 </div>
               </>
             )}
