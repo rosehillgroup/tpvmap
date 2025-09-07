@@ -35,7 +35,7 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
   return (
     <div className="palette-container">
       {/* Desktop Table View */}
-      <div className="palette-table desktop-only">
+      <div className="palette-table desktop-table">
         <table>
           <thead>
             <tr>
@@ -94,7 +94,7 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
       </div>
 
       {/* Mobile Card View */}
-      <div className="palette-cards mobile-only">
+      <div className="palette-cards mobile-cards">
         <div className="palette-header">
           <label className="select-all">
             <input 
@@ -241,9 +241,11 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
     border-color: var(--color-accent);
   }
 
-  /* Mobile Card View */
-  .palette-cards {
+  /* Mobile Card View - Hidden by default */
+  .mobile-cards {
     display: none;
+    flex-direction: column;
+    gap: 1.5rem;
   }
 
   .palette-header {
@@ -312,13 +314,15 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
     flex: 1;
   }
 
-  .color-swatch {
+  .mobile-cards .color-swatch {
     width: 64px;
     height: 64px;
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     border: 3px solid var(--color-border-light);
     flex-shrink: 0;
+    display: block;
+    background: var(--color-surface);
   }
 
   .color-info {
@@ -380,22 +384,14 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
     font-weight: 500;
   }
 
-  /* Responsive Behavior */
-  .desktop-only {
-    display: block;
-  }
-
-  .mobile-only {
-    display: none;
-  }
-
   @media (max-width: 768px) {
-    .desktop-only {
+    /* Hide desktop table, show mobile cards */
+    .desktop-table {
       display: none;
     }
 
-    .mobile-only {
-      display: block;
+    .mobile-cards {
+      display: flex;
     }
 
     .color-grid {
@@ -406,7 +402,7 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
       padding: 1rem;
     }
 
-    .color-swatch {
+    .mobile-cards .color-swatch {
       width: 56px;
       height: 56px;
     }
@@ -435,7 +431,7 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
       gap: 0.75rem;
     }
 
-    .color-swatch {
+    .mobile-cards .color-swatch {
       width: 48px;
       height: 48px;
     }
