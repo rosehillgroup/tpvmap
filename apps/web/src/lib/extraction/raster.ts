@@ -580,28 +580,4 @@ export class RasterExtractor {
     };
   }
 
-  async renderPDFPageToCanvas(
-    pdfPage: any,
-    scale: number = 1
-  ): Promise<any | null> {
-    try {
-      // Dynamic import for server-side rendering
-      const { createCanvas } = await import('canvas');
-      
-      const viewport = pdfPage.getViewport({ scale });
-      const canvas = createCanvas(viewport.width, viewport.height);
-      const context = canvas.getContext('2d');
-
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport
-      };
-
-      await pdfPage.render(renderContext).promise;
-      return canvas;
-    } catch (error) {
-      console.error('Failed to render PDF page to canvas:', error);
-      return null;
-    }
-  }
 }

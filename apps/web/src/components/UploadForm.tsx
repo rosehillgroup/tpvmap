@@ -125,8 +125,9 @@ export default function UploadForm() {
         
         try {
           // Dynamic import to avoid server-side loading
-          const { generatePDFThumbnail, uploadPDFThumbnail } = await import('../lib/client/pdfProcessor');
+          const { generatePDFThumbnail, uploadPDFThumbnail, extractAndUploadPDFColors } = await import('../lib/client/pdfProcessor');
           
+          // Generate thumbnail
           const thumbnailResult = await generatePDFThumbnail(file);
           if (thumbnailResult) {
             console.info('PDF thumbnail generated:', {
@@ -143,9 +144,16 @@ export default function UploadForm() {
           } else {
             console.warn('Failed to generate PDF thumbnail, continuing anyway');
           }
+          
+          // Extract and upload colors in parallel
+          setProgress({ stage: 'processing', progress: 35, message: 'Extracting PDF colors...' });
+          const colorsSuccess = await extractAndUploadPDFColors(file, data.jobId);
+          if (!colorsSuccess) {
+            console.warn('Failed to extract PDF colors, server will try vector extraction only');
+          }
         } catch (thumbnailError) {
-          console.error('PDF thumbnail generation failed:', thumbnailError);
-          // Continue anyway - the placeholder will be used
+          console.error('PDF processing failed:', thumbnailError);
+          // Continue anyway - the server will handle fallbacks
         }
       }
       

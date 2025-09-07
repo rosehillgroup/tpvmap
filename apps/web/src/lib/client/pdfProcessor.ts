@@ -210,3 +210,97 @@ export async function uploadPDFThumbnail(
     return false;
   }
 }
+
+/**
+ * Extract colors from PDF using client-side raster analysis and upload to server
+ */
+export async function extractAndUploadPDFColors(
+  file: File,
+  jobId: string
+): Promise<boolean> {
+  try {
+    console.info('Starting PDF color extraction...');
+    
+    const rasterSamples = await extractPDFRasterSamples(file, 3, 100000); // Process up to 3 pages, max 100k pixels
+    
+    if (rasterSamples.length === 0) {
+      console.warn('No raster samples extracted from PDF');
+      return false;
+    }
+    
+    // Simple color quantization on the raster data
+    const colorMap = new Map<string, { count: number; rgb: { R: number; G: number; B: number }; page: number }>();
+    
+    for (const sample of rasterSamples) {
+      // Sample pixels to reduce processing time
+      const step = Math.max(1, Math.floor(sample.rgba.length / (4 * 2000))); // Sample ~2000 pixels max per page
+      
+      for (let i = 0; i < sample.rgba.length; i += 4 * step) {
+        const r = sample.rgba[i];
+        const g = sample.rgba[i + 1]; 
+        const b = sample.rgba[i + 2];
+        const a = sample.rgba[i + 3];
+        
+        // Skip transparent pixels
+        if (a < 128) continue;
+        
+        // Quantize to reduce noise (group similar colors)
+        const qr = Math.floor(r / 8) * 8;
+        const qg = Math.floor(g / 8) * 8; 
+        const qb = Math.floor(b / 8) * 8;
+        
+        const key = `${qr},${qg},${qb}`;
+        const existing = colorMap.get(key);
+        
+        if (existing) {
+          existing.count++;
+        } else {
+          colorMap.set(key, {
+            count: 1,
+            rgb: { R: qr, G: qg, B: qb },
+            page: sample.page
+          });
+        }
+      }
+    }
+    
+    // Convert to percentage-based colors
+    const totalPixelsSampled = rasterSamples.reduce((sum, sample) => 
+      sum + Math.floor(sample.rgba.length / (4 * Math.max(1, Math.floor(sample.rgba.length / (4 * 2000))))), 0
+    );
+    
+    const colors = Array.from(colorMap.entries())
+      .map(([key, data]) => ({
+        rgb: data.rgb,
+        percentage: (data.count / totalPixelsSampled) * 100,
+        page: data.page
+      }))
+      .filter(c => c.percentage >= 0.5) // Only keep colors that are at least 0.5%
+      .sort((a, b) => b.percentage - a.percentage)
+      .slice(0, 20); // Keep top 20 colors
+    
+    console.info(`Extracted ${colors.length} colors from PDF raster data:`, 
+      colors.slice(0, 5).map(c => `RGB(${c.rgb.R},${c.rgb.G},${c.rgb.B}) ${c.percentage.toFixed(1)}%`));
+    
+    // Upload to server
+    const formData = new FormData();
+    formData.append('jobId', jobId);
+    formData.append('colors', JSON.stringify(colors));
+    
+    const response = await fetch('/api/upload-raster-colors', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      console.error('Failed to upload raster colors:', response.statusText);
+      return false;
+    }
+    
+    console.info('Successfully uploaded PDF raster colors to server');
+    return true;
+  } catch (error) {
+    console.error('Failed to extract and upload PDF colors:', error);
+    return false;
+  }
+}

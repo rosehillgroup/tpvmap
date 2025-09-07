@@ -137,15 +137,9 @@ export class PaletteExtractor {
           }
         }
 
-        // Fallback to raster extraction for PDFs with no vector colors
-        if (this.options.rasterFallback && (pdfColours.length === 0 || warnings.length > 0)) {
-          try {
-            progressLoader?.updateProgress('extracting', 50, 'Fallback to PDF raster analysis...');
-            await this.extractRasterFromPDF(fileBuffer, rasterColours, warnings);
-            sources.push('raster');
-          } catch (error) {
-            warnings.push(`PDF raster fallback failed: ${error.message}`);
-          }
+        // Skip server-side PDF raster extraction - client handles this now
+        if (pdfColours.length === 0) {
+          warnings.push('No vector colors found in PDF. Use client-side raster extraction for better color detection.');
         }
       }
 
@@ -242,51 +236,4 @@ export class PaletteExtractor {
     }
   }
 
-  private async extractRasterFromPDF(
-    fileBuffer: ArrayBuffer,
-    rasterColours: PaletteColour[],
-    warnings: string[]
-  ): Promise<void> {
-    try {
-      // Import PDF.js dynamically for server-side rendering
-      const pdfjs = await import('pdfjs-dist');
-      const pdf = await pdfjs.getDocument({ 
-        data: fileBuffer,
-        useSystemFonts: false,
-        isEvalSupported: false
-      }).promise;
-
-      // Process each page as raster
-      for (let pageNum = 1; pageNum <= Math.min(pdf.numPages, 5); pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const canvas = await this.rasterExtractor.renderPDFPageToCanvas(page, 1.0);
-        
-        if (canvas) {
-          const pageResult = await this.rasterExtractor.extractFromCanvas(canvas);
-          
-          // Convert page colors to palette colors
-          const pageColours = pageResult.colours.map(color => ({
-            id: generateColourId(color.rgb, 'raster'),
-            rgb: color.rgb,
-            lab: this.converter.rgbToLab(color.rgb),
-            areaPct: color.percentage / pdf.numPages, // Distribute across pages
-            pageIds: [pageNum],
-            source: 'raster' as const,
-            metadata: {
-              pixels: color.pixels,
-              percentage: color.percentage
-            }
-          }));
-
-          rasterColours.push(...pageColours);
-        }
-      }
-
-      if (pdf.numPages > 5) {
-        warnings.push(`Only processed first 5 of ${pdf.numPages} pages for raster analysis`);
-      }
-    } catch (error) {
-      throw new Error(`PDF raster extraction failed: ${error.message}`);
-    }
-  }
 }

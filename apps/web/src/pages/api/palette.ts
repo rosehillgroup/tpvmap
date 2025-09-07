@@ -91,6 +91,45 @@ export async function GET(context: any) {
           metadata: color.metadata
         }));
         
+        // For PDFs, also check for client-side raster colors
+        if (jobData.fileName.toLowerCase().endsWith('.pdf')) {
+          try {
+            const clientRasterStr = await store.get(`client-raster/${jobId}.json`, { type: 'text' });
+            if (clientRasterStr) {
+              const clientRasterData = JSON.parse(clientRasterStr);
+              const clientColors = clientRasterData.colors || [];
+              
+              console.info(`Found ${clientColors.length} client-side raster colors for PDF`);
+              
+              // Convert client colors to palette format and add them
+              const { ColourSpaceConverter } = await import('../../lib/extraction/utils');
+              const converter = new ColourSpaceConverter();
+              
+              const clientPaletteEntries: PaletteEntry[] = clientColors.map((color: any, index: number) => ({
+                id: `client-${index}`,
+                rgb: color.rgb,
+                lab: converter.rgbToLab(color.rgb),
+                areaPct: color.percentage,
+                pageIds: [color.page],
+                source: 'raster' as const,
+                metadata: {
+                  clientExtracted: true
+                }
+              }));
+              
+              // Merge with existing palette, prioritizing client raster colors for PDFs
+              // since they often have better color representation than vector data
+              palette = [...clientPaletteEntries, ...palette]
+                .sort((a, b) => b.areaPct - a.areaPct)
+                .slice(0, 15); // Keep top 15 colors total
+              
+              console.info(`Combined palette now has ${palette.length} colors (${clientPaletteEntries.length} from client raster, ${result.palette.length} from server vector)`);
+            }
+          } catch (clientRasterError) {
+            console.warn('Failed to load client raster colors:', clientRasterError);
+          }
+        }
+        
         // Cache the palette with extraction metadata
         await store.set(`palettes/${jobId}.json`, JSON.stringify({
           palette,
