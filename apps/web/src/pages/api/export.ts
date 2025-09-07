@@ -133,7 +133,13 @@ export async function GET(context: any) {
       return Response.json({ error: 'Palette not found' }, { status: 404 });
     }
     
-    const palette: PaletteEntry[] = JSON.parse(paletteStr);
+    const paletteData = JSON.parse(paletteStr);
+    const palette: PaletteEntry[] = Array.isArray(paletteData) ? paletteData : paletteData.palette || [];
+    
+    if (!Array.isArray(palette)) {
+      console.error('Palette data structure error:', typeof palette, palette);
+      return Response.json({ error: 'Invalid palette data structure' }, { status: 500 });
+    }
     
     // Find the latest results for this job
     const allKeys = await store.list({ prefix: `results/${jobId}-` });
