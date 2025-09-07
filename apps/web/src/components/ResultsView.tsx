@@ -3,6 +3,7 @@ import PaletteTable from './PaletteTable';
 import ConstraintsPanel from './ConstraintsPanel';
 import BlendPresets from './BlendPresets';
 import RecipesTable from './RecipesTable';
+import DesignPreview from './DesignPreview';
 import tpvColours from '../data/rosehill_tpv_21_colours.json';
 import type { TPVColour } from '../lib/colour/blend';
 
@@ -137,6 +138,9 @@ export default function ResultsView({ jobId }: Props) {
       </div>
 
       <div className="workflow">
+        {/* Design Preview Section */}
+        <DesignPreview jobId={jobId} />
+
         <div className="workflow-step active">
           <div className="step-header">
             <div className="step-number">1</div>

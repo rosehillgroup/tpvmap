@@ -36,6 +36,62 @@ async function getImageInfo(buffer: Buffer): Promise<{ width: number; height: nu
   };
 }
 
+async function generatePDFThumbnail(pdfBuffer: ArrayBuffer): Promise<{ buffer: Buffer; width: number; height: number } | null> {
+  try {
+    // Import PDF.js for server-side rendering
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    (pdfjs.GlobalWorkerOptions as any).workerSrc = null; // Disable worker in server environment
+    
+    // Load PDF document
+    const pdf = await pdfjs.getDocument({ 
+      data: pdfBuffer,
+      useSystemFonts: false,
+      isEvalSupported: false 
+    }).promise;
+    
+    if (pdf.numPages === 0) {
+      throw new Error('PDF has no pages');
+    }
+    
+    // Get first page
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 1.0 });
+    
+    // Create canvas
+    const { createCanvas } = await import('canvas');
+    const canvas = createCanvas(viewport.width, viewport.height);
+    const context = canvas.getContext('2d');
+    
+    // Render page to canvas
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport,
+      canvas: canvas as any
+    };
+    
+    await page.render(renderContext).promise;
+    
+    // Convert canvas to image buffer
+    const canvasBuffer = canvas.toBuffer('image/png');
+    
+    // Generate thumbnail using Sharp
+    const { default: sharp } = await import('sharp');
+    const thumbnailBuffer = await sharp(canvasBuffer)
+      .resize(200, 200, { fit: 'inside' })
+      .png()
+      .toBuffer();
+    
+    return {
+      buffer: thumbnailBuffer,
+      width: viewport.width,
+      height: viewport.height
+    };
+  } catch (error) {
+    console.error('Failed to generate PDF thumbnail:', error);
+    return null;
+  }
+}
+
 export async function POST(context: any) {
   try {
     console.info("Upload API called");
@@ -73,7 +129,7 @@ export async function POST(context: any) {
     const store = getStore({ name: 'tpv-matcher' });
     
     // Store the uploaded file
-    await store.set(`uploads/${jobId}.${filename.split('.').pop()}`, new Uint8Array(buffer));
+    await store.set(`uploads/${jobId}.${filename.split('.').pop()}`, buffer);
     console.info('File stored successfully');
     
     const pages: PageInfo[] = [];
@@ -87,7 +143,7 @@ export async function POST(context: any) {
       console.info('Thumbnail generated, size:', thumbnail.length);
       
       // Store thumbnail
-      await store.set(`thumbnails/${jobId}-page-1.png`, new Uint8Array(thumbnail));
+      await store.set(`thumbnails/${jobId}-page-1.png`, thumbnail);
       
       pages.push({
         id: 'page-1',
@@ -96,13 +152,35 @@ export async function POST(context: any) {
         previewUrl: `/api/thumbnail/${jobId}-page-1.png`
       });
     } else if (fileType === 'application/pdf') {
-      // For PDF files, create placeholder page info
-      pages.push({
-        id: 'page-1',
-        width: 595,
-        height: 842,
-        previewUrl: '/placeholder-pdf.png'
-      });
+      // Generate PDF thumbnail
+      console.info('Generating PDF thumbnail...');
+      const pdfThumbnail = await generatePDFThumbnail(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength));
+      
+      if (pdfThumbnail) {
+        console.info('PDF thumbnail generated successfully:', {
+          width: pdfThumbnail.width,
+          height: pdfThumbnail.height,
+          size: pdfThumbnail.buffer.length
+        });
+        
+        // Store PDF thumbnail
+        await store.set(`thumbnails/${jobId}-page-1.png`, pdfThumbnail.buffer);
+        
+        pages.push({
+          id: 'page-1',
+          width: pdfThumbnail.width,
+          height: pdfThumbnail.height,
+          previewUrl: `/api/thumbnail/${jobId}-page-1.png`
+        });
+      } else {
+        console.warn('PDF thumbnail generation failed, using placeholder');
+        pages.push({
+          id: 'page-1',
+          width: 595,
+          height: 842,
+          previewUrl: '/placeholder-pdf.png'
+        });
+      }
     }
     
     // Store job metadata
