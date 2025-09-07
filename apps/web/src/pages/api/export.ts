@@ -31,12 +31,25 @@ function calculateBoM(areaPct: number, thicknessMm: number, densityKgM3: number,
 }
 
 function formatRecipe(weights: Record<string, number>, parts?: Record<string, number>): string {
-  if (parts) {
+  // Debug logging to see what data we're working with
+  console.log('formatRecipe called with:', {
+    weightsEntries: Object.entries(weights).length,
+    weightsData: weights,
+    hasPartsData: !!parts,
+    partsEntries: parts ? Object.entries(parts).length : 0,
+    partsData: parts
+  });
+  
+  if (parts && Object.keys(parts).length > 0) {
     const partsArray = Object.entries(parts).map(([code, value]) => `${value} parts ${code}`);
-    return partsArray.join(', ');
+    const result = partsArray.join(', ');
+    console.log('Using parts format:', result);
+    return result;
   } else {
     const percentArray = Object.entries(weights).map(([code, value]) => `${(value * 100).toFixed(1)}% ${code}`);
-    return percentArray.join(', ');
+    const result = percentArray.join(', ');
+    console.log('Using percentage format:', result);
+    return result;
   }
 }
 

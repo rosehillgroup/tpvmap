@@ -182,19 +182,34 @@ export async function POST(context: any) {
       );
       console.log(`[${targetId}] Canonical keys:`, canonicalKeys);
       
-      const legacyRecipes = finalSelection.slice(0, 5).map(recipe => ({
-        kind: constraints.mode as 'percent' | 'parts',
-        weights: recipe.weights,
-        parts: recipe.parts ? recipe.parts.codes.reduce((obj, code, i) => {
-          obj[code] = recipe.parts!.parts[i];
-          return obj;
-        }, {} as Record<string, number>) : undefined,
-        total: recipe.parts?.total,
-        rgb: allSmartRecipes.find(sr => sr.deltaE === recipe.deltaE)?.rgb || { R: 128, G: 128, B: 128 },
-        lab: recipe.lab,
-        deltaE: recipe.deltaE,
-        note: finalSelection.length < 5 ? `Showing ${finalSelection.length} unique recipes` : undefined
-      }));
+      const legacyRecipes = finalSelection.slice(0, 5).map((recipe, index) => {
+        // Debug logging for recipe conversion
+        console.log(`[${targetId}] Recipe ${index + 1}:`, {
+          mode: recipe.mode,
+          components: recipe.components.length,
+          hasPartsData: !!recipe.parts,
+          partsStructure: recipe.parts ? {
+            codes: recipe.parts.codes,
+            parts: recipe.parts.parts,
+            total: recipe.parts.total
+          } : null,
+          weights: recipe.weights
+        });
+        
+        return {
+          kind: constraints.mode as 'percent' | 'parts',
+          weights: recipe.weights,
+          parts: recipe.parts ? recipe.parts.codes.reduce((obj, code, i) => {
+            obj[code] = recipe.parts!.parts[i];
+            return obj;
+          }, {} as Record<string, number>) : undefined,
+          total: recipe.parts?.total,
+          rgb: allSmartRecipes.find(sr => sr.deltaE === recipe.deltaE)?.rgb || { R: 128, G: 128, B: 128 },
+          lab: recipe.lab,
+          deltaE: recipe.deltaE,
+          note: finalSelection.length < 5 ? `Showing ${finalSelection.length} unique recipes` : undefined
+        };
+      });
       
       recipes[targetId] = legacyRecipes;
     }
