@@ -1,4 +1,5 @@
 import { getStore } from '@netlify/blobs';
+import tpvColours from '../../data/rosehill_tpv_21_colours.json';
 
 export const prerender = false;
 
@@ -21,40 +22,28 @@ interface Recipe {
   note?: string;
 }
 
-function calculateBoM(areaPct: number, thicknessMm: number, densityKgM3: number, wastagePct: number, designAreaM2: number = 1): number {
-  // Calculate material needed in kg
-  const volumeM3 = designAreaM2 * (thicknessMm / 1000); // Convert mm to m
-  const baseWeight = volumeM3 * densityKgM3;
-  const areaFraction = areaPct / 100;
-  const withWastage = baseWeight * (1 + wastagePct / 100);
-  return baseWeight * areaFraction * withWastage;
-}
 
 function formatRecipe(weights: Record<string, number>, parts?: Record<string, number>): string {
-  // Debug logging to see what data we're working with
-  console.log('formatRecipe called with:', {
-    weightsEntries: Object.entries(weights).length,
-    weightsData: weights,
-    hasPartsData: !!parts,
-    partsEntries: parts ? Object.entries(parts).length : 0,
-    partsData: parts
-  });
+  // Helper function to get color name by code
+  const getColorName = (code: string): string => {
+    const color = tpvColours.find(c => c.code === code);
+    return color ? color.name : code;
+  };
   
   if (parts && Object.keys(parts).length > 0) {
-    const partsArray = Object.entries(parts).map(([code, value]) => `${value} parts ${code}`);
-    const result = partsArray.join(', ');
-    console.log('Using parts format:', result);
-    return result;
+    const partsArray = Object.entries(parts).map(([code, value]) => 
+      `${value} parts ${code} ${getColorName(code)}`
+    );
+    return partsArray.join(', ');
   } else {
-    const percentArray = Object.entries(weights).map(([code, value]) => `${(value * 100).toFixed(1)}% ${code}`);
-    const result = percentArray.join(', ');
-    console.log('Using percentage format:', result);
-    return result;
+    const percentArray = Object.entries(weights).map(([code, value]) => 
+      `${(value * 100).toFixed(1)}% ${code} ${getColorName(code)}`
+    );
+    return percentArray.join(', ');
   }
 }
 
-function generatePDFHTML(recipes: Record<string, Recipe[]>, palette: PaletteEntry[], params: { thicknessMm: number; densityKgM3: number; wastagePct: number }): string {
-  const { thicknessMm, densityKgM3, wastagePct } = params;
+function generatePDFHTML(recipes: Record<string, Recipe[]>, palette: PaletteEntry[]): string {
   
   const recipesHtml = Object.entries(recipes).map(([targetId, targetRecipes]) => {
     const target = palette.find(p => p.id === targetId);
@@ -92,8 +81,7 @@ function generatePDFHTML(recipes: Record<string, Recipe[]>, palette: PaletteEntr
         <div style="margin-bottom: 1rem;">
           <strong>Recipe:</strong> ${formatRecipe(recipe.weights, recipe.parts)}<br>
           <strong>Match Quality:</strong> ΔE2000 = ${recipe.deltaE.toFixed(2)} 
-          ${recipe.deltaE < 1 ? '(Excellent)' : recipe.deltaE < 2 ? '(Good)' : '(Fair)'}<br>
-          <strong>Predicted Material:</strong> ${predictedKg.toFixed(2)} kg
+          ${recipe.deltaE < 1 ? '(Excellent)' : recipe.deltaE < 2 ? '(Good)' : '(Fair)'}
         </div>
       </div>
     `;
@@ -115,10 +103,6 @@ function generatePDFHTML(recipes: Record<string, Recipe[]>, palette: PaletteEntr
     <body>
       <h1>🎨 TPV Colour Match Specification</h1>
       <div class="params">
-        <h3>Parameters</h3>
-        <div><strong>Material Thickness:</strong> ${thicknessMm}mm</div>
-        <div><strong>Density:</strong> ${densityKgM3} kg/m³</div>
-        <div><strong>Wastage Factor:</strong> ${wastagePct}%</div>
         <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
       </div>
       <h2>Recipe Formulations</h2>
@@ -200,7 +184,7 @@ export async function GET(context: any) {
     }
     
     if (format === 'csv') {
-      const rows = ['Target Colour,Recipe,Area %,ΔE2000,Predicted kg'];
+      const rows = ['Target Colour,Recipe,Area %,ΔE2000'];
       
       for (const [targetId, targetRecipes] of Object.entries(recipes)) {
         const target = palette.find(p => p.id === targetId);
@@ -224,9 +208,8 @@ export async function GET(context: any) {
         });
         const targetHex = `#${target.rgb.R.toString(16).padStart(2, '0')}${target.rgb.G.toString(16).padStart(2, '0')}${target.rgb.B.toString(16).padStart(2, '0')}`.toUpperCase();
         const recipeText = formatRecipe(recipe.weights, recipe.parts);
-        const predictedKg = calculateBoM(target.areaPct, thicknessMm, densityKgM3, wastagePct);
         
-        rows.push(`"${targetHex}","${recipeText}",${target.areaPct.toFixed(1)},${recipe.deltaE.toFixed(2)},${predictedKg.toFixed(2)}`);
+        rows.push(`"${targetHex}","${recipeText}",${target.areaPct.toFixed(1)},${recipe.deltaE.toFixed(2)}`);
       }
       
       const csv = rows.join('\n');
@@ -240,7 +223,7 @@ export async function GET(context: any) {
       });
     } else if (format === 'pdf') {
       // Generate simple PDF as HTML for now - could be enhanced with proper PDF library
-      const htmlContent = generatePDFHTML(recipes, palette, { thicknessMm, densityKgM3, wastagePct });
+      const htmlContent = generatePDFHTML(recipes, palette);
       
       return new Response(htmlContent, {
         status: 200,
@@ -253,7 +236,6 @@ export async function GET(context: any) {
       const exportData = {
         jobId,
         exportDate: new Date().toISOString(),
-        parameters: { thicknessMm, densityKgM3, wastagePct },
         results: []
       };
       
@@ -279,7 +261,6 @@ export async function GET(context: any) {
         });
         
         const targetHex = `#${target.rgb.R.toString(16).padStart(2, '0')}${target.rgb.G.toString(16).padStart(2, '0')}${target.rgb.B.toString(16).padStart(2, '0')}`.toUpperCase();
-        const predictedKg = calculateBoM(target.areaPct, thicknessMm, densityKgM3, wastagePct);
         
         exportData.results.push({
           targetColour: targetHex,
@@ -289,7 +270,6 @@ export async function GET(context: any) {
           parts: recipe.parts,
           areaPct: target.areaPct,
           deltaE: recipe.deltaE,
-          predictedKg,
           note: recipe.note
         });
       }
