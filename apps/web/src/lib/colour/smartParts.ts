@@ -1,6 +1,6 @@
 import { RGB, Lab, linearRGBToSRGB, linearRGBToXYZ, xyzToLab } from './convert';
 import { deltaE2000 } from './deltaE';
-import { EnhancedTPVColour, mixLinearRGB, normalizeWeights, gcd, argmax, clamp } from './smartUtils';
+import { EnhancedTPVColour, mixLinearRGB, normalizeWeights, gcdArray, argmax, clamp } from './smartUtils';
 
 export interface PartsResult {
   parts: Record<string, number>;
@@ -100,7 +100,7 @@ export function snapToParts(
   }
   
   // Reduce to simplest form using GCD
-  const g = gcd(bestParts);
+  const g = gcdArray(bestParts);
   const reducedParts = bestParts.map(p => p / g);
   const reducedTotal = reducedParts.reduce((a, b) => a + b, 0);
   

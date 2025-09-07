@@ -76,7 +76,7 @@ export async function POST(context: any) {
     const solver = new SmartBlendSolver(tpvColours as TPVColour[], smartConstraints);
     
     // Solve for each target colour
-    const recipes: Record<string, SmartRecipe[]> = {};
+    const recipes: Record<string, any[]> = {};
     
     for (const targetId of targetIds) {
       const target = palette.find(p => p.id === targetId);
@@ -91,19 +91,48 @@ export async function POST(context: any) {
         b: target.lab.b
       };
       
-      // Solve for this target with smart solver
-      const smartRecipes = solver.solve(targetLab, 5);
+      // Solve for this target with smart solver and complexity bucketing
+      const allSmartRecipes = solver.solve(targetLab, 15); // Get more candidates
       
-      // Convert SmartRecipe format to legacy Recipe format for compatibility
-      const legacyRecipes = smartRecipes.map(recipe => ({
-        kind: constraints.mode,
+      // Bucket by complexity for diversity
+      const singleComponent = allSmartRecipes.filter(r => r.components.length === 1);
+      const twoComponent = allSmartRecipes.filter(r => r.components.length === 2);
+      const threeComponent = allSmartRecipes.filter(r => r.components.length === 3);
+      
+      // Select balanced representation from each bucket
+      const finalSelection = [
+        ...singleComponent.slice(0, 1),  // Top 1 single component
+        ...twoComponent.slice(0, 3),     // Top 3 two-component
+        ...threeComponent.slice(0, 1)    // Top 1 three-component
+      ];
+      
+      // Fill remaining slots with best overall candidates if needed
+      const usedIndices = new Set();
+      finalSelection.forEach((recipe, idx) => {
+        const originalIdx = allSmartRecipes.findIndex(r => 
+          r.components.length === recipe.components.length && 
+          r.deltaE === recipe.deltaE
+        );
+        if (originalIdx !== -1) usedIndices.add(originalIdx);
+      });
+      
+      const remainingSlots = 5 - finalSelection.length;
+      if (remainingSlots > 0) {
+        const unused = allSmartRecipes.filter((_, idx) => !usedIndices.has(idx));
+        finalSelection.push(...unused.slice(0, remainingSlots));
+      }
+      
+      // Convert SmartRecipe format to legacy Recipe format for compatibility  
+      const legacyRecipes = finalSelection.slice(0, 5).map(recipe => ({
+        kind: constraints.mode as 'percent' | 'parts',
         weights: recipe.weights,
         parts: recipe.parts,
         total: recipe.total,
         rgb: recipe.rgb,
         lab: recipe.lab,
         deltaE: recipe.deltaE,
-        note: recipe.reasoning || recipe.note
+        note: recipe.reasoning || recipe.note || 
+               (finalSelection.length < 5 ? `Showing ${finalSelection.length} unique recipes` : undefined)
       }));
       
       recipes[targetId] = legacyRecipes;
