@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { rgbToHex } from '../lib/colour/convert';
 
 interface PaletteEntry {
@@ -16,6 +16,22 @@ interface Props {
 }
 
 export default function PaletteTable({ palette, selectedTargets, onSelectionChange }: Props) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    // Check on initial load
+    checkIsMobile();
+
+    // Add resize listener
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
   const handleToggle = (id: string) => {
     if (selectedTargets.includes(id)) {
       onSelectionChange(selectedTargets.filter(t => t !== id));
@@ -34,8 +50,10 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
 
   return (
     <div className="palette-container">
-      {/* Desktop Table View */}
-      <div className="palette-table desktop-table">
+      {/* Conditional Rendering Based on Screen Size */}
+      {!isMobile ? (
+        /* Desktop Table View */
+        <div className="palette-table">
         <table>
           <thead>
             <tr>
@@ -91,10 +109,10 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
             })}
           </tbody>
         </table>
-      </div>
-
-      {/* Mobile Card View */}
-      <div className="palette-cards mobile-cards">
+        </div>
+      ) : (
+        /* Mobile Card View */
+        <div className="palette-cards">
         <div className="palette-header">
           <label className="select-all">
             <input 
@@ -120,7 +138,18 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
                   <div className="color-preview">
                     <div 
                       className="color-swatch"
-                      style={{ backgroundColor: hex }}
+                      style={{ 
+                        backgroundColor: hex,
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: 'var(--radius)',
+                        boxShadow: 'var(--shadow-md)',
+                        border: '3px solid var(--color-border-light)',
+                        flexShrink: 0,
+                        minHeight: '64px',
+                        minWidth: '64px',
+                        display: 'block'
+                      }}
                     />
                     <div className="color-info">
                       <div className="hex-code">{hex}</div>
@@ -155,7 +184,8 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
             );
           })}
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -241,16 +271,16 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
     border-color: var(--color-accent);
   }
 
-  /* Mobile Card View - Hidden by default with high specificity */
-  .palette-container .mobile-cards {
-    display: none !important;
+  /* Mobile Card View */
+  .palette-cards {
+    display: flex;
     flex-direction: column;
     gap: 1.5rem;
   }
 
-  /* Desktop Table - Shown by default with high specificity */
-  .palette-container .desktop-table {
-    display: block !important;
+  /* Desktop Table View */
+  .palette-table {
+    display: block;
   }
 
   .palette-header {
@@ -319,15 +349,13 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
     flex: 1;
   }
 
-  .palette-container .mobile-cards .color-swatch {
+  .color-swatch {
     width: 64px;
     height: 64px;
     border-radius: var(--radius);
     box-shadow: var(--shadow-md);
     border: 3px solid var(--color-border-light);
     flex-shrink: 0;
-    display: block !important;
-    background: var(--color-surface) !important;
     min-height: 64px;
     min-width: 64px;
   }
@@ -391,68 +419,5 @@ export default function PaletteTable({ palette, selectedTargets, onSelectionChan
     font-weight: 500;
   }
 
-  @media (max-width: 768px) {
-    /* Hide desktop table, show mobile cards - with high specificity */
-    .palette-container .desktop-table {
-      display: none !important;
-    }
-
-    .palette-container .mobile-cards {
-      display: flex !important;
-    }
-
-    .color-grid {
-      gap: 0.75rem;
-    }
-
-    .color-card {
-      padding: 1rem;
-    }
-
-    .palette-container .mobile-cards .color-swatch {
-      width: 56px !important;
-      height: 56px !important;
-      min-width: 56px;
-      min-height: 56px;
-    }
-
-    .hex-code {
-      font-size: 1rem;
-    }
-
-    .color-details {
-      gap: 0.5rem;
-      padding-top: 0.75rem;
-    }
-
-    .color-details code {
-      font-size: 0.8125rem;
-      padding: 0.25rem 0.5rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .color-card {
-      padding: 0.875rem;
-    }
-
-    .color-preview {
-      gap: 0.75rem;
-    }
-
-    .palette-container .mobile-cards .color-swatch {
-      width: 48px !important;
-      height: 48px !important;
-      min-width: 48px;
-      min-height: 48px;
-    }
-
-    .hex-code {
-      font-size: 0.9375rem;
-    }
-
-    .area-percentage {
-      font-size: 0.8125rem;
-    }
-  }
+  /* Media queries removed - using React state-based responsive rendering */
 `}</style>
